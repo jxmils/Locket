@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Enamel rangefinder used both as the Postbox shortcut and the moving press.
+/// Enamel rangefinder on the first-book welcome screen.
 struct VintageCamera: View {
     var body: some View {
         Canvas { context, size in

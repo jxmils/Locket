@@ -5,7 +5,7 @@ An iPhone stamp book. Choose one photo for the day, keep it on a dated page, and
 ## Using Stampnote
 
 - **Today** — compose through the live perforated stamp. Tap the shutter to freeze the photo and press the postmark onto it. Retake or tap Post stamp to use the day’s page. You can switch lenses or choose a picture from Photos.
-- **Postbox** — the app opens here. Swipe through stamps from friends, newest first. The camera in the first slot opens today’s blank page until you post. Mutual friends who can open a stamp can like it and leave comments. Pin a friend’s stamp to your book for the day. A visitor needs access to the original book to see a pin.
+- **Postbox** — the app opens here. Swipe through stamps from friends, newest first. The perforated plus labeled **Make today’s stamp** opens your daily page and disappears after you post. Mutual friends who can open a stamp can like it and leave comments. Pin a friend’s stamp to your book for the day. A visitor needs access to the original book to see a pin.
 - **Stamp books** — browse your own book or choose a friend's, grouped by month. Tap a stamp to open it.
 - **Invitations** — open your own book and choose **Book options (•••) → Share stamp book**. Apple's sharing sheet grants invited people read-only access to the entire book, including future entries. A friend sends their own invitation to share back. Use the same sheet to manage access.
 - **Home Screen** — add the **Friends’ stamps** widget in small, medium or large. Tap the stamp to advance when there are multiple entries. With one entry, a tap opens the Postbox. WidgetKit schedules background updates.

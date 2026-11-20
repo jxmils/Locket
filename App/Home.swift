@@ -234,10 +234,22 @@ struct Postbox: View {
                         if library.shelf.own.map({ book in !book.stamps.contains { $0.day == book.day(timeline.date) } }) ?? true {
                             Button(action: openToday) {
                                 VStack(spacing: 5) {
-                                    VintageCamera().frame(width: 54, height: 45)
-                                    Text("Stamp today").font(.caption.weight(.semibold))
+                                    ZStack {
+                                        PerforatedPaper().fill(Paper.ink)
+                                        Rectangle().strokeBorder(Paper.stock.opacity(0.76), lineWidth: 0.8)
+                                            .padding(5)
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .foregroundStyle(Paper.stock)
+                                    }
+                                    .frame(width: 35, height: 40)
+                                    .rotationEffect(.degrees(-6))
+                                    .frame(width: 49, height: 49)
+                                    .accessibilityHidden(true)
+                                    Text("Make today’s stamp").font(.caption.weight(.semibold))
                                 }
-                            }.buttonStyle(.plain).accessibilityHint("Opens your camera and photo choices")
+                            }.buttonStyle(.plain)
+                                .accessibilityHint(library.shelf.own == nil ? "Starts your stamp book" : "Opens your stamp-shaped viewfinder")
                         }
                         ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
                             Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
