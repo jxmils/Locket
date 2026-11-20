@@ -146,58 +146,6 @@ private enum StampCut {
 
 private enum PressPosition { case off, raised, down, lifting }
 
-/// A turned wooden grip on a brass cutting plate. The die shares its footprint with the paper.
-private struct PostagePress: View {
-    var body: some View {
-        GeometryReader { g in
-            let w = g.size.width
-            let h = g.size.height
-            let brass = Color(red: 0.70, green: 0.49, blue: 0.25)
-            let rim = Color(red: 0.29, green: 0.21, blue: 0.16)
-            ZStack {
-                PerforatedPaper().fill(rim)
-                RoundedRectangle(cornerRadius: w * 0.048)
-                    .fill(LinearGradient(colors: [Color(red: 0.94, green: 0.82, blue: 0.62), brass, rim],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .padding(w * 0.016)
-                RoundedRectangle(cornerRadius: w * 0.032)
-                    .fill(LinearGradient(colors: [Color(red: 0.26, green: 0.38, blue: 0.37),
-                                                  Color(red: 0.09, green: 0.17, blue: 0.18)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .padding(w * 0.04)
-                RoundedRectangle(cornerRadius: w * 0.024)
-                    .strokeBorder(brass.opacity(0.8), lineWidth: 1).padding(w * 0.060)
-                ForEach(0..<4) { i in
-                    Circle().fill(brass)
-                        .overlay { Capsule().fill(rim).frame(width: w * 0.017, height: 1).rotationEffect(.degrees(-28)) }
-                        .frame(width: w * 0.032, height: w * 0.032)
-                        .position(x: w * (i.isMultiple(of: 2) ? 0.094 : 0.906), y: h * (i < 2 ? 0.09 : 0.91))
-                }
-                Ellipse().fill(.black.opacity(0.32)).frame(width: w * 0.40, height: w * 0.13)
-                    .blur(radius: w * 0.014).offset(x: w * 0.025, y: h * 0.082)
-                Ellipse().fill(brass.gradient).frame(width: w * 0.34, height: w * 0.12).offset(y: h * 0.065)
-                Path { p in
-                    p.move(to: CGPoint(x: 0.43*w, y: 0.57*h))
-                    p.addQuadCurve(to: CGPoint(x: 0.40*w, y: 0.40*h), control: CGPoint(x: 0.47*w, y: 0.43*h))
-                    p.addCurve(to: CGPoint(x: 0.34*w, y: 0.29*h), control1: CGPoint(x: 0.35*w, y: 0.37*h), control2: CGPoint(x: 0.32*w, y: 0.34*h))
-                    p.addCurve(to: CGPoint(x: 0.66*w, y: 0.29*h), control1: CGPoint(x: 0.37*w, y: 0.20*h), control2: CGPoint(x: 0.63*w, y: 0.20*h))
-                    p.addCurve(to: CGPoint(x: 0.60*w, y: 0.40*h), control1: CGPoint(x: 0.68*w, y: 0.34*h), control2: CGPoint(x: 0.65*w, y: 0.37*h))
-                    p.addQuadCurve(to: CGPoint(x: 0.57*w, y: 0.57*h), control: CGPoint(x: 0.53*w, y: 0.43*h))
-                    p.addQuadCurve(to: CGPoint(x: 0.43*w, y: 0.57*h), control: CGPoint(x: 0.50*w, y: 0.60*h))
-                    p.closeSubpath()
-                }
-                .fill(LinearGradient(stops: [
-                    .init(color: Color(red: 0.29, green: 0.12, blue: 0.07), location: 0),
-                    .init(color: Color(red: 0.73, green: 0.43, blue: 0.24), location: 0.32),
-                    .init(color: Color(red: 0.48, green: 0.22, blue: 0.12), location: 0.55),
-                    .init(color: Color(red: 0.22, green: 0.10, blue: 0.07), location: 1)
-                ], startPoint: .leading, endPoint: .trailing))
-            }
-        }
-        .accessibilityHidden(true).allowsHitTesting(false)
-    }
-}
-
 struct StampCamera: View {
     let book: Book
     let active: Bool
@@ -379,13 +327,14 @@ struct StampCamera: View {
                     .transition(.opacity)
             }
             if !reduceMotion && press != .off {
-                PostagePress()
+                PerforatedPaper()
+                    .stroke(Paper.stock, lineWidth: 2)
                     .frame(width: cut, height: cutHeight)
-                    .rotation3DEffect(.degrees(press == .down ? 0 : 38), axis: (x: 1, y: 0, z: 0))
-                    .rotationEffect(.degrees(press == .down ? 0 : -8))
-                    .shadow(color: .black.opacity(0.58), radius: press == .down ? 2 : 11, y: press == .down ? 2 : 17)
-                    .offset(y: press == .down ? 0 : -height * 0.94)
-                    .opacity(press == .lifting ? 0 : 1)
+                    .scaleEffect(press == .down ? 1 : 1.035)
+                    .offset(y: press == .down ? 0 : -height * 0.045)
+                    .opacity(press == .lifting ? 0 : 0.92)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
                     .transition(.identity)
             }
         }
