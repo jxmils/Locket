@@ -221,6 +221,83 @@ private struct BookPortrait: View {
     }
 }
 
+private struct StampPager: View {
+    let pages: [Shelf.Page]
+    @Binding var selected: String?
+
+    var body: some View {
+        if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
+            GeometryReader { geometry in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(pages) { item in
+                            ZStack(alignment: .bottomLeading) {
+                                StampArt(image: item.stamp.image(small: false), ratio: 0.94)
+                                HStack(spacing: 8) {
+                                    BookPortrait(book: item.book, size: 27)
+                                    Text(item.book.author).font(.subheadline.weight(.bold))
+                                }
+                                .padding(6).padding(.trailing, 7).background(.white, in: Capsule()).padding(22)
+                            }
+                            .frame(width: geometry.size.width - 8)
+                            .shadow(color: .black.opacity(0.15), radius: 2, y: 2)
+                            .frame(width: geometry.size.width)
+                            .id(item.id)
+                        }
+                    }.scrollTargetLayout()
+                }
+                .scrollIndicators(.hidden).scrollTargetBehavior(.paging).scrollPosition(id: $selected)
+            }
+            .aspectRatio(0.94, contentMode: .fit)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
+            .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
+            .accessibilityAdjustableAction { direction in
+                let position = pages.firstIndex { $0.id == page.id } ?? 0
+                let step = direction == .increment ? 1 : -1
+                selected = pages[max(0, min(pages.count - 1, position + step))].id
+            }
+            HStack {
+                Text(page.stamp.dateLabel).font(.subheadline.weight(.semibold))
+                Spacer()
+                if pages.count > 1 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "rectangle.stack")
+                        Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
+                    }.font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct OpenBook: View {
+    @EnvironmentObject private var library: Library
+    @Environment(\.dismiss) private var dismiss
+    let bookID: String
+    @State private var selected: String?
+
+    init(page: Shelf.Page) {
+        bookID = page.book.id
+        _selected = State(initialValue: page.id)
+    }
+
+    var body: some View {
+        PaperPage {
+            HStack {
+                PageTitle(title: library.shelf.books.first { $0.id == bookID }?.author ?? "Stamp book")
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark").frame(width: 44, height: 44)
+                }.accessibilityLabel("Close book")
+            }
+            if let book = library.shelf.books.first(where: { $0.id == bookID }) {
+                StampPager(pages: book.stamps.map { Shelf.Page(book: book, stamp: $0) }, selected: $selected)
+            }
+        }
+        .presentationDragIndicator(.visible)
+    }
+}
+
 struct Postbox: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
@@ -244,38 +321,7 @@ struct Postbox: View {
                         }
                     }.padding(2)
                 }.scrollIndicators(.hidden)
-                GeometryReader { geometry in
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 0) {
-                            ForEach(mail) { item in
-                            Button { selected = Shelf.nextID(item.id, in: mail.map(\.id)) } label: {
-                                ZStack(alignment: .bottomLeading) {
-                                    StampArt(image: item.stamp.image(small: false), ratio: 0.94)
-                                    HStack(spacing: 8) {
-                                        BookPortrait(book: item.book, size: 27)
-                                        Text(item.book.author).font(.subheadline.weight(.bold))
-                                    }
-                                    .padding(6).padding(.trailing, 7).background(.white, in: Capsule()).padding(22)
-                                }
-                                .frame(width: geometry.size.width - 6)
-                                .shadow(color: .black.opacity(0.15), radius: 2, y: 2)
-                            }.buttonStyle(.plain).accessibilityLabel("Stamp from \(item.book.author), \(item.stamp.dateLabel)")
-                            .accessibilityHint(mail.count > 1 ? "Shows the next stamp" : "The only stamp in your postbox")
-                            .frame(width: geometry.size.width).id(item.id)
-                            }
-                        }.scrollTargetLayout()
-                    }.scrollIndicators(.hidden).scrollTargetBehavior(.paging).scrollPosition(id: $selected)
-                }.aspectRatio(0.94, contentMode: .fit)
-                HStack {
-                    Text(page.stamp.dateLabel).font(.subheadline.weight(.medium))
-                    Spacer()
-                    if mail.count > 1 {
-                        Text("\((mail.firstIndex { $0.id == page.id } ?? 0) + 1) / \(mail.count)").font(.caption.monospacedDigit())
-                        Button { selected = Shelf.nextID(page.id, in: mail.map(\.id)) } label: {
-                            Image(systemName: "arrow.right").frame(width: 44, height: 44).background(Paper.melon, in: Circle())
-                        }.accessibilityLabel("Next stamp")
-                    }
-                }
+                StampPager(pages: mail, selected: $selected)
             } else {
                 Text("Your friends’ stamps will arrive here.").font(.system(.title2, design: .serif))
                 Text("Ask a friend to invite you to their stamp book. Open their invitation on this iPhone to add it.").foregroundStyle(.secondary)
@@ -355,15 +401,6 @@ struct Books: View {
             } catch { if !Task.isCancelled { library.message = error.localizedDescription } }
             if !Task.isCancelled { self.portraitChoice = nil }
         }
-        .sheet(item: $detail) { page in
-            PaperPage {
-                Button("Done") { detail = nil }
-                PageTitle(title: page.book.author)
-                if let stamp = library.shelf.books.first(where: { $0.id == page.book.id })?.stamps.first(where: { $0.id == page.stamp.id }) {
-                    StampArt(image: stamp.image(small: false))
-                    Text(stamp.dateLabel).font(.system(.subheadline, design: .monospaced))
-                }
-            }.presentationDragIndicator(.visible)
-        }
+        .sheet(item: $detail) { page in OpenBook(page: page) }
     }
 }

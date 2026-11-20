@@ -84,10 +84,7 @@ struct MailWidgetView: View {
     private func labels(_ name: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(name).font(.system(.headline, design: .serif)).lineLimit(1)
-            HStack {
-                Text(entry.day ?? "").font(.caption2.monospacedDigit())
-                if entry.count > 1 { Image(systemName: "arrow.right").font(.caption2) }
-            }
+            Text(entry.day ?? "").font(.caption2.monospacedDigit())
         }
     }
 }
