@@ -72,6 +72,9 @@ struct StampActions: View {
         .font(.subheadline.weight(.semibold))
         .buttonStyle(PostActionStyle()).disabled(library.saving)
         .overlay(alignment: .top) { Divider() }
+        #if DEBUG && targetEnvironment(simulator)
+        .task { if Storage.captureTab == "comments", !page.book.mine { comments = true } }
+        #endif
         .sheet(isPresented: $comments) { CommentSheet(page: page) }
     }
 }

@@ -9,14 +9,31 @@ struct Home: View {
     @State private var tab: SectionTab = .postbox
     init() {
         #if DEBUG && targetEnvironment(simulator)
-        if ["press","pressDemo"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .today) }
+        if ["press","pressDemo","proof","welcome"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .today) }
+        if ["detail","pins","friend"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .books) }
         if let tabName = Storage.captureTab, let selected = SectionTab(rawValue: tabName) {
             _tab = State(initialValue: selected)
         }
         #endif
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        #if DEBUG && targetEnvironment(simulator)
+        if let tab = Storage.captureTab, tab.hasPrefix("widget-"), let page = library.shelf.mail.first {
+            let size: CGSize = tab == "widget-small" ? .init(width: 158, height: 158) :
+                tab == "widget-medium" ? .init(width: 338, height: 158) : .init(width: 338, height: 354)
+            FriendWidgetFace(name: page.book.author, day: page.stamp.dateLabel, image: page.stamp.image(), wide: tab == "widget-medium")
+                .padding(16).frame(width: size.width, height: size.height)
+                .background(Paper.page, in: RoundedRectangle(cornerRadius: 22))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Paper.board.ignoresSafeArea()).preferredColorScheme(.light)
+        } else { tabs }
+        #else
+        tabs
+        #endif
+    }
+
+    private var tabs: some View {
         TabView(selection: $tab) {
             Postbox { tab = .today }.tabItem { Label("Postbox", systemImage: "envelope") }.tag(SectionTab.postbox)
             Today(active: tab == .today).tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)
@@ -135,31 +152,30 @@ private struct StampPager: View {
 
     var body: some View {
         if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
-            HStack(spacing: 9) {
-                BookPortrait(book: page.book, size: 35)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(page.book.author).font(.headline)
-                    Text(page.stamp.dateLabel).font(.caption).foregroundStyle(.secondary)
-                }
+            HStack(alignment: .firstTextBaseline) {
+                Text("From \(page.book.author)").font(.system(.title2, design: .serif).italic())
                 Spacer()
                 if pages.count > 1 {
                     Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
-            }.padding(.top, 4)
+            }.padding(.top, 2)
             GeometryReader { geometry in
+                let peek: CGFloat = pages.count > 1 ? 30 : 0
                 ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
+                    LazyHStack(spacing: 7) {
                         ForEach(pages) { item in
                             PrintMount(image: item.stamp.image(small: false), caption: item.stamp.dateLabel)
-                                .frame(width: geometry.size.width)
-                            .id(item.id)
+                                .frame(width: geometry.size.width - peek)
+                                .id(item.id)
                         }
                     }.scrollTargetLayout()
                 }
-                .scrollIndicators(.hidden).scrollTargetBehavior(.paging).scrollPosition(id: $selected)
+                .contentMargins(.trailing, peek, for: .scrollContent)
+                .scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $selected, anchor: .leading)
             }
-            .aspectRatio(0.91, contentMode: .fit)
+            .aspectRatio(pages.count > 1 ? 0.99 : 0.91, contentMode: .fit)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
             .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
@@ -228,9 +244,11 @@ struct Postbox: View {
                                 VStack(spacing: 5) {
                                     BookPortrait(book: friend, size: 43).padding(3)
                                         .overlay { Circle().strokeBorder((mail.first { $0.id == selected } ?? mail.first)?.book.id == friend.id ? Paper.red : .clear, lineWidth: 1.5) }
-                                    Text(friend.author).font(.caption).lineLimit(1)
+                                    if (mail.first { $0.id == selected } ?? mail.first)?.book.id != friend.id {
+                                        Text(friend.author).font(.caption).lineLimit(1)
+                                    }
                                 }
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(.plain).accessibilityLabel("Stamps from \(friend.author)")
                         }
                     }.padding(.vertical, 2)
                 }.scrollIndicators(.hidden)
@@ -254,6 +272,7 @@ struct Postbox: View {
 struct Books: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
+    @State private var monthChoice: String?
     @State private var detail: Shelf.Page?
     @State private var portraitChoice: PhotosPickerItem?
     @State private var choosingPortrait = false
@@ -268,7 +287,7 @@ struct Books: View {
                 HStack(spacing: 12) {
                     BookPortrait(book: book, size: 52)
                     Menu {
-                        ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id } }
+                        ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id; monthChoice = nil } }
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack { Text(book.author).font(.title3.bold()); Image(systemName: "chevron.down").font(.caption2) }
@@ -316,18 +335,48 @@ struct Books: View {
                 }
                 if book.stamps.isEmpty { Text("The first stamp will go here.").foregroundStyle(.secondary) }
                 let months = Dictionary(grouping: book.stamps) { String($0.day.prefix(7)) }
-                ForEach(months.keys.sorted(by: >), id: \.self) { month in
-                    let pages = months[month] ?? []
-                    Text(pages.first?.monthLabel ?? month).font(.headline.bold())
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 18) {
-                        ForEach(pages) { stamp in
-                            Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
-                                StampArt(image: stamp.image(), inscription: stamp.dateLabel)
-                                    .shadow(color: .black.opacity(0.24), radius: 1.3, y: 2)
-                            }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                let monthsInOrder = months.keys.sorted(by: >)
+                if let month = monthChoice.flatMap({ months[$0] == nil ? nil : $0 }) ?? monthsInOrder.first,
+                   let pages = months[month] {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            if monthsInOrder.count > 1 {
+                                Menu {
+                                    ForEach(monthsInOrder, id: \.self) { key in
+                                        Button(months[key]?.first?.monthLabel ?? key) { monthChoice = key }
+                                    }
+                                } label: {
+                                    Label(pages.first?.monthLabel ?? month, systemImage: "calendar")
+                                    Image(systemName: "chevron.down").font(.caption2)
+                                }
+                            } else { Text(pages.first?.monthLabel ?? month) }
+                            Spacer()
+                            Text("\((monthsInOrder.firstIndex(of: month) ?? 0) + 1) / \(monthsInOrder.count)")
+                                .font(.caption2.monospacedDigit())
+                        }.font(.subheadline.weight(.semibold))
+                        Divider()
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 17) {
+                            ForEach(pages) { stamp in
+                                Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
+                                    StampArt(image: stamp.image(), inscription: stamp.dateLabel)
+                                        .shadow(color: Paper.ink.opacity(0.22), radius: 1.5, y: 2)
+                                }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                            }
                         }
+                    }.padding(13)
+                    .background {
+                        Canvas { context, size in
+                            var lines = Path()
+                            for x in stride(from: 0, to: size.width, by: 14) {
+                                lines.move(to: CGPoint(x: x, y: 0)); lines.addLine(to: CGPoint(x: x, y: size.height))
+                            }
+                            for y in stride(from: 0, to: size.height, by: 14) {
+                                lines.move(to: CGPoint(x: 0, y: y)); lines.addLine(to: CGPoint(x: size.width, y: y))
+                            }
+                            context.stroke(lines, with: .color(Paper.board.opacity(0.09)), lineWidth: 0.5)
+                        }.background(Paper.stock.opacity(0.75))
                     }
-                    .padding(.horizontal, 3).padding(.bottom, 10)
+                    .overlay { Rectangle().strokeBorder(Paper.board.opacity(0.16), lineWidth: 0.7) }
                 }
             } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
         }
@@ -342,6 +391,14 @@ struct Books: View {
             } catch { if !Task.isCancelled { library.message = error.localizedDescription } }
             if !Task.isCancelled { self.portraitChoice = nil }
         }
+        #if DEBUG && targetEnvironment(simulator)
+        .task {
+            if Storage.captureTab == "friend" { selected = library.shelf.friends.first?.id }
+            if Storage.captureTab == "detail", let book = library.shelf.own, let stamp = book.stamps.first {
+                detail = Shelf.Page(book: book, stamp: stamp)
+            }
+        }
+        #endif
         .sheet(item: $detail) { page in OpenBook(page: page) }
         .sheet(item: $invite) { invitation in
             Sharing(invitation: invitation, finished: { Task { await library.refresh() } }, failed: { library.message = $0 })

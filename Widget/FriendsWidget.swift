@@ -72,19 +72,6 @@ struct MailWidgetView: View {
         .foregroundStyle(Paper.ink).privacySensitive()
     }
     @ViewBuilder private func card(_ name: String) -> some View {
-        if family == .systemMedium {
-            HStack(spacing: 14) { StampArt(image: entry.image); labels(name) }
-        } else {
-            VStack(alignment: .leading, spacing: 3) {
-                StampArt(image: entry.image).frame(maxWidth: .infinity)
-                labels(name)
-            }
-        }
-    }
-    private func labels(_ name: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(name).font(.system(.headline, design: .serif)).lineLimit(1)
-            Text(entry.day ?? "").font(.caption2.monospacedDigit())
-        }
+        FriendWidgetFace(name: name, day: entry.day ?? "", image: entry.image, wide: family == .systemMedium)
     }
 }

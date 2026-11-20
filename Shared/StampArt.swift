@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 enum Paper {
-    static let page = Color(red: 0.958, green: 0.951, blue: 0.933)
-    static let board = Color(red: 0.23, green: 0.22, blue: 0.35)
-    static let lining = Color(red: 0.80, green: 0.81, blue: 0.91)
+    static let page = Color(red: 0.967, green: 0.955, blue: 0.918)
+    static let board = Color(red: 0.16, green: 0.29, blue: 0.43)
+    static let lining = Color(red: 0.79, green: 0.84, blue: 0.86)
     static let stock = Color(red: 1, green: 0.985, blue: 0.948)
-    static let ink = Color(red: 0.13, green: 0.12, blue: 0.16)
+    static let ink = Color(red: 0.08, green: 0.17, blue: 0.28)
     static let red = Color(red: 0.70, green: 0.19, blue: 0.105)
 }
 
@@ -59,17 +59,12 @@ struct PostageFace<Picture: View>: View {
                     .frame(width: side, height: side).clipped()
                     .overlay { Rectangle().strokeBorder(Paper.ink.opacity(0.22), lineWidth: 0.7) }
                     .offset(x: margin, y: margin)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Stampnote").italic().font(.system(size: w * 0.066, weight: .semibold, design: .serif))
-                    Spacer()
-                    Text(date.uppercased()).font(.system(size: w * 0.032, weight: .semibold, design: .monospaced))
-                }
-                .foregroundStyle(Paper.ink).frame(width: side)
-                .position(x: w/2, y: w * 1.016)
+                Text("Stampnote").italic().font(.system(size: w * 0.076, weight: .semibold, design: .serif))
+                    .foregroundStyle(Paper.ink)
+                    .position(x: w * 0.23, y: w * 1.018)
                 if inked {
-                    Postmark().frame(width: w * 0.245, height: w * 0.14)
-                        .rotationEffect(.degrees(-12))
-                        .position(x: w * 0.89, y: w * 0.918)
+                    Postmark(date: date).frame(width: w * 0.43, height: w * 0.128)
+                        .rotationEffect(.degrees(-6)).position(x: w * 0.81, y: w * 0.991)
                 }
             }.clipShape(PerforatedPaper())
         }.aspectRatio(Self.aspect, contentMode: .fit)
@@ -77,23 +72,50 @@ struct PostageFace<Picture: View>: View {
 }
 
 struct Postmark: View {
+    let date: String
     var body: some View {
-        Canvas { ctx, size in
-            let d = size.height
-            let pigment = GraphicsContext.Shading.color(Paper.red.opacity(0.95))
-            let circle = CGRect(x: 1, y: 1, width: d-2, height: d-2)
-            ctx.stroke(Path(ellipseIn: circle), with: pigment, lineWidth: max(1, d * 0.035))
-            ctx.stroke(Path(ellipseIn: circle.insetBy(dx: d*0.07, dy: d*0.07)), with: pigment, lineWidth: max(0.5, d*0.016))
-            ctx.draw(Text("POST").font(.system(size: d*0.23, weight: .black, design: .serif)).foregroundStyle(Paper.red),
-                     at: CGPoint(x: d/2, y: d/2))
-            for row in -1...1 {
-                let y = d * (0.50 + CGFloat(row)*0.13)
-                var line = Path()
-                line.move(to: CGPoint(x: d*0.88, y: y))
-                line.addCurve(to: CGPoint(x: size.width, y: y-d*0.02), control1: CGPoint(x: d*1.22, y: y-d*0.20), control2: CGPoint(x: size.width-d*0.18, y: y+d*0.16))
-                ctx.stroke(line, with: pigment, lineWidth: max(0.8, d*0.031))
-            }
+        GeometryReader { g in
+            let h = g.size.height
+            let box = g.size.width * 0.72
+            ZStack(alignment: .leading) {
+                Canvas { ctx, size in
+                    for row in -1...1 {
+                        let y = h * (0.5 + CGFloat(row)*0.14)
+                        var line = Path()
+                        line.move(to: CGPoint(x: box-1, y: y))
+                        line.addCurve(to: CGPoint(x: size.width, y: y), control1: CGPoint(x: box+h*0.3, y: y-h*0.21), control2: CGPoint(x: size.width-h*0.24, y: y+h*0.20))
+                        ctx.stroke(line, with: .color(Paper.red), lineWidth: max(0.6, h*0.032))
+                    }
+                }
+                VStack(spacing: h * 0.026) {
+                    Text("POST").font(.system(size: h * 0.22, weight: .black, design: .serif))
+                    Text(date.uppercased()).font(.system(size: h * 0.245, weight: .bold, design: .monospaced))
+                        .lineLimit(1).minimumScaleFactor(0.66)
+                }.padding(.horizontal, h * 0.08).frame(width: box, height: h*0.80)
+                    .background(Paper.stock.opacity(0.92), in: Capsule())
+                    .overlay { Capsule().strokeBorder(Paper.red, lineWidth: max(0.7,h*0.032)) }
+            }.foregroundStyle(Paper.red)
         }.accessibilityHidden(true)
+    }
+}
+
+struct FriendWidgetFace: View {
+    let name: String
+    let day: String
+    let image: UIImage?
+    var wide = false
+    var body: some View {
+        GeometryReader { g in
+            let width = min(g.size.width * (wide ? 0.55 : 1), (g.size.height - (wide ? 4 : 23)) / 1.105)
+            let layout = wide ? AnyLayout(HStackLayout(spacing: 16)) : AnyLayout(VStackLayout(spacing: 3))
+            layout {
+                StampArt(image: image, inscription: day)
+                    .frame(width: max(1,width), height: max(1,width) * 1.105)
+                    .shadow(color: Paper.ink.opacity(0.18), radius: 1, y: 1)
+                Text("From \(name)").font(.system(wide ? .title3 : .caption, design: .serif).italic())
+                    .lineLimit(wide ? 2 : 1).minimumScaleFactor(0.8).foregroundStyle(Paper.ink)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 

@@ -158,12 +158,12 @@ struct StampCamera: View {
     }
     var body: some View {
         GeometryReader { geo in
-            let width = max(1, min(geo.size.width - 34, (geo.size.height - 170) / 1.105, 490))
+            let width = max(1, min(geo.size.width - 20, (geo.size.height - 170) / 1.105, 490))
             VStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Today’s stamp").font(.system(.title, design: .serif).italic())
                     Spacer()
-                    Label(date.uppercased(), systemImage: "calendar")
+                    Text(impression ? "" : date.uppercased())
                         .font(.caption2.monospaced().weight(.medium))
                 }.padding(.horizontal, 22).padding(.top, 12)
                 Spacer(minLength: 8)
@@ -199,9 +199,9 @@ struct StampCamera: View {
                         PerforatedPaper().stroke(Paper.stock, lineWidth: max(3, width * 0.018))
                         Rectangle().strokeBorder(Paper.red.opacity(0.85), lineWidth: 1.5)
                             .padding(width * 0.034)
-                        Postmark().frame(width: width * 0.245, height: width * 0.14)
-                            .rotationEffect(.degrees(-12))
-                            .position(x: width * 0.89, y: width * 0.918)
+                        Postmark(date: date).frame(width: width * 0.43, height: width * 0.128)
+                            .rotationEffect(.degrees(-6))
+                            .position(x: width * 0.81, y: width * 0.991)
                     }
                         .shadow(color: .black.opacity(contact ? 0 : 0.5), radius: 4, y: 5)
                         .scaleEffect(reduceMotion ? 1 : (contact ? 1 : 1.16), anchor: .center)
@@ -260,10 +260,10 @@ struct StampCamera: View {
         .task(id: "\(useLens)-\(front)") {
             guard useLens else { lens.stop(); ready = false; return }
             #if DEBUG && targetEnvironment(simulator)
-            if ["press","pressDemo"].contains(Storage.captureTab ?? ""), let root = Storage.root {
+            if ["press","pressDemo","proof"].contains(Storage.captureTab ?? ""), let root = Storage.root {
                 fixture = try? Data(contentsOf: root.appendingPathComponent("1.jpg"))
-                if Storage.captureTab == "pressDemo" {
-                    do { try await Task.sleep(for: .seconds(3)); shutter() } catch {}
+                if Storage.captureTab != "press" {
+                    do { try await Task.sleep(for: .milliseconds(Storage.captureTab == "proof" ? 150 : 3000)); shutter() } catch {}
                 }
                 return
             }
