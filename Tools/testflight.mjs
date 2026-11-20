@@ -26,6 +26,7 @@ const lookup = () => apple('builds?' + new URLSearchParams({'filter[app]':app,'f
 if (mode === 'lookup') {
   console.log((await lookup()).length ? 'present' : 'missing')
 } else {
+  const betaGroup = await apple('betaGroups/' + group)
   let ready = false
   for (let attempt=0; attempt<100; attempt++) {
     const [build] = await lookup()
@@ -33,9 +34,11 @@ if (mode === 'lookup') {
       const state = build.attributes.processingState
       if (state === 'FAILED' || state === 'INVALID') throw Error('Apple processing ' + state)
       if (state === 'VALID') {
-        const assigned = await apple('betaGroups/' + group + '/builds?limit=200')
-        if (!assigned.some(item => item.id === build.id)) {
-          await apple('betaGroups/' + group + '/relationships/builds',{data:[{type:'builds',id:build.id}]})
+        if (!betaGroup.attributes.hasAccessToAllBuilds) {
+          const assigned = await apple('builds/' + build.id + '/betaGroups?limit=200')
+          if (!assigned.some(item => item.id === group)) {
+            await apple('betaGroups/' + group + '/relationships/builds',{data:[{type:'builds',id:build.id}]})
+          }
         }
         const detail = await apple('builds/' + build.id + '/buildBetaDetail')
         if (detail.attributes.internalBuildState === 'IN_BETA_TESTING') {
