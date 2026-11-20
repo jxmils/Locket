@@ -12,6 +12,7 @@
 		112C0A654E443476C37579ED /* LocketApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B7BC0FC42800209C4D1673D /* LocketApp.swift */; };
 		1E144A4C400C2E5F29A77589 /* CloudBooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FDFB936C84EAE202D6BEF28 /* CloudBooks.swift */; };
 		338D72648F602DA5C50DAFAD /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDCFEFCB36C883FA531E275 /* Sharing.swift */; };
+		D31CA551D31CA55100000001 /* StampCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = D31CA551D31CA55100000002 /* StampCamera.swift */; };
 		3818A04DF4C9F727A7199C3A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95552F8A4AB3F8303F4AB487 /* Foundation.framework */; };
 		3F354042690211CA95D91F77 /* StampArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F489D0C757A5EA1FBFC4A05C /* StampArt.swift */; };
 		63902B433C362D3FF8FDDFAE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2CEB83983FB075E4410C5F9 /* Assets.xcassets */; };
@@ -64,6 +65,7 @@
 		88A3AD1B2CC84C80F130ACC0 /* Book.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		95552F8A4AB3F8303F4AB487 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		9FDCFEFCB36C883FA531E275 /* Sharing.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
+		D31CA551D31CA55100000002 /* StampCamera.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StampCamera.swift; sourceTree = "<group>"; };
 		B58F111887B4904BD3E9C9C4 /* FriendsStamps.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FriendsStamps.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7665E8D0C6DF18033270C69 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB9D1D2B5951B9B83EBD1416 /* FriendsWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FriendsWidget.swift; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 				623EB25BFB184E6D98B76427 /* PostOffice.swift */,
 				1B7BC0FC42800209C4D1673D /* LocketApp.swift */,
 				9FDCFEFCB36C883FA531E275 /* Sharing.swift */,
+				D31CA551D31CA55100000002 /* StampCamera.swift */,
 				10E1B3E4A8DC345E00F0F6AB /* Info.plist */,
 				FF7198DE35F82B013449DA0A /* App.entitlements */,
 				C2CEB83983FB075E4410C5F9 /* Assets.xcassets */,
@@ -275,6 +278,7 @@
 				46B58A12ADA49B442EFFB398 /* PostOffice.swift in Sources */,
 				112C0A654E443476C37579ED /* LocketApp.swift in Sources */,
 				338D72648F602DA5C50DAFAD /* Sharing.swift in Sources */,
+				D31CA551D31CA55100000001 /* StampCamera.swift in Sources */,
 				9800C40F5E2F2EB9C8E56793 /* Book.swift in Sources */,
 				1E144A4C400C2E5F29A77589 /* CloudBooks.swift in Sources */,
 				CBDB1818BF6F5176FFF902F2 /* NextStamp.swift in Sources */,

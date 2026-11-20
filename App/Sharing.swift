@@ -33,24 +33,3 @@ struct Sharing: UIViewControllerRepresentable {
         }
     }
 }
-
-struct Camera: UIViewControllerRepresentable {
-    var result: (Data?) -> Void
-    func makeCoordinator() -> Coordinator { Coordinator(result: result) }
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.cameraCaptureMode = .photo
-        picker.delegate = context.coordinator
-        return picker
-    }
-    func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        var result: (Data?) -> Void
-        init(result: @escaping (Data?) -> Void) { self.result = result }
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { result(nil) }
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            result((info[.originalImage] as? UIImage)?.jpegData(compressionQuality: 0.94))
-        }
-    }
-}

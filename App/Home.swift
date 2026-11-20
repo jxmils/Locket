@@ -19,7 +19,7 @@ struct Home: View {
     var body: some View {
         TabView(selection: $tab) {
             Postbox { tab = .today }.tabItem { Label("Postbox", systemImage: "envelope") }.tag(SectionTab.postbox)
-            Today().tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)
+            Today(active: tab == .today).tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)
             Books().tabItem { Label("Stamp books", systemImage: "books.vertical") }.tag(SectionTab.books)
         }
         .tint(Paper.ink)
@@ -31,22 +31,10 @@ struct Home: View {
     }
 }
 
-private struct Masthead: View {
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Stampnote").font(.system(size: 26, weight: .semibold, design: .serif)).tracking(-1.2)
-            Spacer()
-            Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).uppercased())
-                .font(.caption2.monospaced().weight(.bold))
-        }
-        .padding(.bottom, 10).overlay(alignment: .bottom) { Rectangle().frame(height: 1) }
-    }
-}
-
 struct PageTitle: View {
     var title: String
     var body: some View {
-        Text(title).font(.system(size: 43, weight: .regular, design: .serif)).tracking(-2)
+        Text(title).font(.system(size: 40, weight: .semibold, design: .serif)).tracking(-1.7)
             .frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
     }
 }
@@ -56,8 +44,8 @@ struct PaperPage<Content: View>: View {
     @ViewBuilder var content: () -> Content
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) { Masthead(); content() }
-                .padding(.horizontal, 18).padding(.top, 9).padding(.bottom, 24)
+            VStack(alignment: .leading, spacing: 18) { content() }
+                .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 24)
                 .frame(maxWidth: 560).frame(maxWidth: .infinity)
         }
         .background(Paper.page.ignoresSafeArea())
@@ -70,27 +58,10 @@ struct PrintMount: View {
     var image: UIImage?
     var caption: String
     var body: some View {
-        ZStack {
-            Paper.board
-            Canvas { context, size in
-                let inset: CGFloat = 8
-                context.stroke(Path(CGRect(origin: .zero, size: size).insetBy(dx: inset, dy: inset)),
-                               with: .color(Paper.stock.opacity(0.4)), style: StrokeStyle(lineWidth: 0.7, dash: [2, 3]))
-            }.accessibilityHidden(true)
-            StampArt(image: image, ratio: 1.26, inscription: caption)
-                .shadow(color: .black.opacity(0.32), radius: 2, y: 3)
-                .rotationEffect(.degrees(-3))
-                .padding(.horizontal, 30)
-            if image != nil {
-                GeometryReader { g in
-                    PostalImprint(day: caption).frame(width: g.size.width * 0.31, height: g.size.width * 0.17)
-                        .rotationEffect(.degrees(-9))
-                        .position(x: g.size.width * 0.725, y: g.size.height * 0.38)
-                }.allowsHitTesting(false)
-            }
-        }
-        .aspectRatio(1.03, contentMode: .fit)
-        .clipped()
+        StampArt(image: image, inscription: caption)
+            .shadow(color: Paper.ink.opacity(0.18), radius: 2.5, y: 2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
     }
 }
 
@@ -103,85 +74,39 @@ struct PrimaryButton: ButtonStyle {
 }
 
 struct Today: View {
+    let active: Bool
     @EnvironmentObject private var library: Library
     @State private var name = ""
-    @State private var draft: Data?
-    @State private var picker: PhotosPickerItem?
-    @State private var camera = false
-
-    init() {
-        #if DEBUG && targetEnvironment(simulator)
-        if ["press","pressDemo"].contains(Storage.captureTab ?? ""), let root = Storage.root {
-            _draft = State(initialValue: try? Data(contentsOf: root.appendingPathComponent("1.jpg")))
-        }
-        #endif
-    }
 
     var body: some View {
-        PaperPage {
-            PageTitle(title: library.shelf.own == nil ? "Your first stamp" : "Today’s stamp")
-            if let book = library.shelf.own {
-                TimelineView(.periodic(from: .now, by: 30)) { timeline in
-                    let today = book.day(timeline.date)
-                    VStack(alignment: .leading, spacing: 16) {
-                        if let draft, let image = UIImage(data: draft) {
-                            StampPress(image: image, day: today, commit: { await library.publish(draft) },
-                                       done: { self.draft = nil }, chooseAgain: { self.draft = nil })
-                        } else if let issued = book.stamps.first(where: { $0.day == today }) {
-                            PrintMount(image: issued.image(small: false), caption: issued.dateLabel)
-                            HStack(spacing: 10) {
-                                BookPortrait(book: book)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(book.author).font(.headline)
-                                    Text("Filed in your book").font(.subheadline).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "checkmark.seal.fill").foregroundStyle(Paper.board)
-                            }
-                            StampActions(page: Shelf.Page(book: book, stamp: issued))
-                        } else {
-                            PrintMount(image: nil, caption: today)
-                                Text("One photo for \(book.author)’s book today.").font(.system(.title3, design: .serif))
-                                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                                    Button { Task { await showCamera() } } label: { Label("Take a photo", systemImage: "camera") }
-                                        .buttonStyle(PrimaryButton())
-                                }
-                                PhotosPicker(selection: $picker, matching: .images) {
-                                    Label("Choose a photo", systemImage: "photo.on.rectangle").padding(.vertical, 6)
-                                }
+        if let book = library.shelf.own {
+            TimelineView(.periodic(from: .now, by: 15)) { time in
+                if let issued = book.stamps.first(where: { $0.day == book.day(time.date) }) {
+                    PaperPage {
+                        PageTitle(title: "Today’s stamp")
+                        HStack {
+                            BookPortrait(book: book, size: 34)
+                            Text(book.author).font(.headline)
+                            Spacer()
+                            Label("In your book", systemImage: "checkmark").font(.caption)
                         }
+                        PrintMount(image: issued.image(small: false), caption: issued.dateLabel)
+                        StampActions(page: Shelf.Page(book: book, stamp: issued))
                     }
-                }
-            } else {
-                PrintMount(image: nil, caption: "One photo a day").frame(maxWidth: 300).frame(maxWidth: .infinity)
-                Text("Whose stamp book is this?").font(.system(.title2, design: .serif))
+                } else { StampCamera(book: book, active: active).id(book.id) }
+            }
+        } else {
+            PaperPage {
+                VintageCamera().frame(width: 96, height: 78)
+                PageTitle(title: "Your first stamp")
+                Text("What name goes on your book?").font(.title3)
                 TextField("Your first name", text: $name).textContentType(.givenName).padding(14)
                     .background(Paper.stock, in: RoundedRectangle(cornerRadius: 10))
-                Button(library.saving ? "Opening…" : "Start my stamp book") { Task { await library.create(name) } }
+                Button(library.saving ? "Opening…" : "Open my stamp book") { Task { await library.create(name) } }
                     .buttonStyle(PrimaryButton()).disabled(library.saving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Text("Your book lives in your iCloud. Invite friends whenever you’re ready.").font(.footnote)
             }
         }
-        .task(id: picker) {
-            guard let picker else { return }
-            do {
-                guard let data = try await picker.loadTransferable(type: Data.self) else { throw LocketIssue.photo }
-                let small = try await Task.detached { try Storage.bytes(data, limit: 1600) }.value
-                guard !Task.isCancelled else { return }
-                draft = small
-            } catch { if !Task.isCancelled { library.message = LocketIssue.photo.localizedDescription } }
-            self.picker = nil
-        }
-        .sheet(isPresented: $camera) { Camera { data in camera = false; if let data { draft = data } } }
-
     }
-
-    private func showCamera() async {
-        if await AVCaptureDevice.requestAccess(for: .video) { camera = true }
-        else { library.message = "Allow camera access in Settings, or choose a photo from your library." }
-    }
-
-
 }
 
 struct BookPortrait: View {
@@ -210,6 +135,18 @@ private struct StampPager: View {
 
     var body: some View {
         if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
+            HStack(spacing: 9) {
+                BookPortrait(book: page.book, size: 35)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(page.book.author).font(.headline)
+                    Text(page.stamp.dateLabel).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if pages.count > 1 {
+                    Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }.padding(.top, 4)
             GeometryReader { geometry in
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
@@ -222,7 +159,7 @@ private struct StampPager: View {
                 }
                 .scrollIndicators(.hidden).scrollTargetBehavior(.paging).scrollPosition(id: $selected)
             }
-            .aspectRatio(1.03, contentMode: .fit)
+            .aspectRatio(0.91, contentMode: .fit)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
             .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
@@ -230,17 +167,6 @@ private struct StampPager: View {
                 let position = pages.firstIndex { $0.id == page.id } ?? 0
                 let step = direction == .increment ? 1 : -1
                 selected = pages[max(0, min(pages.count - 1, position + step))].id
-            }
-            HStack {
-                BookPortrait(book: page.book, size: 36)
-                Text("From \(page.book.author)").font(.system(.title3, design: .serif)).italic()
-                Spacer()
-                if pages.count > 1 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "rectangle.stack")
-                        Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
-                    }.font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                }
             }
             StampActions(page: page).id(page.id)
         }
@@ -281,7 +207,11 @@ struct Postbox: View {
     var body: some View {
         let mail = library.shelf.mail
         PaperPage {
-            PageTitle(title: "Postbox")
+            HStack(alignment: .firstTextBaseline) {
+                PageTitle(title: "Postbox")
+                Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased())
+                    .font(.caption2.monospaced().weight(.semibold)).fixedSize()
+            }
             TimelineView(.periodic(from: .now, by: 15)) { timeline in
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 16) {
@@ -296,9 +226,8 @@ struct Postbox: View {
                         ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
                             Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
                                 VStack(spacing: 5) {
-                                    BookPortrait(book: friend, size: 37).padding(4)
-                                        .background(Paper.stock, in: RoundedRectangle(cornerRadius: 3))
-                                        .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(Paper.ink.opacity(0.3)) }
+                                    BookPortrait(book: friend, size: 43).padding(3)
+                                        .overlay { Circle().strokeBorder((mail.first { $0.id == selected } ?? mail.first)?.book.id == friend.id ? Paper.red : .clear, lineWidth: 1.5) }
                                     Text(friend.author).font(.caption).lineLimit(1)
                                 }
                             }.buttonStyle(.plain)
@@ -310,9 +239,9 @@ struct Postbox: View {
                 StampPager(pages: mail, selected: $selected)
             } else {
                 ZStack {
-                    Paper.board
-                    Image(systemName: "envelope.open").font(.system(size: 82, weight: .ultraLight))
-                        .foregroundStyle(Paper.stock).rotationEffect(.degrees(-6))
+                    RoundedRectangle(cornerRadius: 5).fill(Paper.lining.opacity(0.54))
+                    Image(systemName: "envelope").font(.system(size: 94, weight: .ultraLight))
+                        .foregroundStyle(Paper.board).rotationEffect(.degrees(-7))
                 }.aspectRatio(1.6, contentMode: .fit).accessibilityHidden(true)
                 Text("No mail yet").font(.system(.title2, design: .serif))
                 Text("Open a friend’s stamp book invitation to see their photos here.").foregroundStyle(.secondary)
@@ -375,7 +304,7 @@ struct Books: View {
                                     ForEach(pins) { page in
                                         Button { detail = page } label: {
                                             VStack(alignment: .leading) {
-                                                StampArt(image: page.stamp.image(), ratio: 1.2).frame(width: 112)
+                                                StampArt(image: page.stamp.image(), inscription: page.stamp.dateLabel).frame(width: 112)
                                                 Text(page.book.author).font(.caption)
                                             }
                                         }.buttonStyle(.plain)
@@ -393,12 +322,12 @@ struct Books: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 18) {
                         ForEach(pages) { stamp in
                             Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
-                                StampArt(image: stamp.image(), ratio: 1.16, inscription: stamp.dateLabel)
+                                StampArt(image: stamp.image(), inscription: stamp.dateLabel)
                                     .shadow(color: .black.opacity(0.24), radius: 1.3, y: 2)
                             }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
                         }
                     }
-                    .padding(14).background(Paper.board)
+                    .padding(.horizontal, 3).padding(.bottom, 10)
                 }
             } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
         }
