@@ -23,8 +23,8 @@ struct Home: View {
             let size: CGSize = tab == "widget-small" ? .init(width: 158, height: 158) :
                 tab == "widget-medium" ? .init(width: 338, height: 158) : .init(width: 338, height: 354)
             FriendWidgetFace(name: page.book.author, day: page.stamp.dateLabel, image: page.stamp.image(), wide: tab == "widget-medium")
-                .padding(16).frame(width: size.width, height: size.height)
-                .background(Paper.page, in: RoundedRectangle(cornerRadius: 22))
+                .frame(width: size.width, height: size.height)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Paper.board.ignoresSafeArea()).preferredColorScheme(.light)
         } else { tabs }
@@ -146,6 +146,87 @@ struct BookPortrait: View {
     }
 }
 
+private struct DeckPrint: View {
+    let stamp: Stamp
+    var body: some View {
+        PrintMount(image: stamp.image(small: false), caption: stamp.dateLabel)
+    }
+}
+
+private struct StampDeck: View {
+    let front: Stamp
+    let next: Stamp?
+    let previous: Stamp?
+    let advance: (Int) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var offset: CGFloat = 0
+    @State private var departing = false
+    @GestureState private var touching = false
+
+    var body: some View {
+        GeometryReader { area in
+            let width = max(area.size.width, 1)
+            let progress = min(abs(offset) / (width * 0.8), 1)
+            ZStack {
+                if let behind = offset > 0 ? previous : next {
+                    DeckPrint(stamp: behind)
+                        .scaleEffect(0.96 + 0.04 * progress)
+                        .rotationEffect(.degrees(reduceMotion ? 0 : -2 * (1 - progress)))
+                        .offset(y: 5 * (1 - progress))
+                }
+                DeckPrint(stamp: front)
+                    .rotationEffect(.degrees(reduceMotion ? 0 : Double(offset / width) * 13), anchor: .bottom)
+                    .offset(x: offset)
+            }
+            .padding(.horizontal, 7)
+            .frame(width: area.size.width, height: area.size.height)
+            .contentShape(Rectangle())
+            .simultaneousGesture(DragGesture(minimumDistance: 12)
+                .updating($touching) { _, active, _ in active = true }
+                .onChanged { value in
+                    guard !departing, next != nil else { return }
+                    let d = value.translation
+                    if abs(d.width) > abs(d.height) || offset != 0 { offset = d.width }
+                }
+                .onEnded { value in
+                    guard !departing, next != nil else { return }
+                    let d = value.translation
+                    let projected = value.predictedEndTranslation.width
+                    if abs(d.width) > abs(d.height),
+                       abs(d.width) > width * 0.26 || (abs(d.width) > 14 && abs(projected) > width * 0.50 && d.width * projected > 0) {
+                        release(d.width < 0 ? 1 : -1, width: width)
+                    } else { settle() }
+                })
+            .onChange(of: touching) { _, active in
+                if !active && !departing && offset != 0 { settle() }
+            }
+            #if DEBUG && targetEnvironment(simulator)
+            .task {
+                guard Storage.captureTab == "swipeDemo", next != nil else { return }
+                do { try await Task.sleep(for: .seconds(2)) } catch { return }
+                withAnimation(.easeInOut(duration: 0.5)) { offset = -width * 0.32 }
+                do { try await Task.sleep(for: .milliseconds(560)) } catch { return }
+                release(1, width: width)
+            }
+            #endif
+        }
+    }
+
+    private func settle() {
+        withAnimation(.spring(duration: 0.32, bounce: 0.16)) { offset = 0 }
+    }
+
+    private func release(_ step: Int, width: CGFloat) {
+        departing = true
+        if reduceMotion { advance(step); return }
+        withAnimation(.easeOut(duration: 0.24), completionCriteria: .logicallyComplete) {
+            offset = -CGFloat(step) * width * 1.45
+        } completion: {
+            advance(step)
+        }
+    }
+}
+
 private struct StampPager: View {
     let pages: [Shelf.Page]
     @Binding var selected: String?
@@ -160,29 +241,23 @@ private struct StampPager: View {
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
             }.padding(.top, 2)
-            GeometryReader { geometry in
-                let peek: CGFloat = pages.count > 1 ? 30 : 0
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 7) {
-                        ForEach(pages) { item in
-                            PrintMount(image: item.stamp.image(small: false), caption: item.stamp.dateLabel)
-                                .frame(width: geometry.size.width - peek)
-                                .id(item.id)
-                        }
-                    }.scrollTargetLayout()
-                }
-                .contentMargins(.trailing, peek, for: .scrollContent)
-                .scrollIndicators(.hidden).scrollTargetBehavior(.viewAligned)
-                .scrollPosition(id: $selected, anchor: .leading)
+            let index = pages.firstIndex { $0.id == page.id } ?? 0
+            let startingSelection = selected
+            StampDeck(front: page.stamp,
+                      next: pages.count > 1 ? pages[(index + 1) % pages.count] : nil,
+                      previous: pages.count > 1 ? pages[(index + pages.count - 1) % pages.count] : nil) { step in
+                guard selected == startingSelection else { return }
+                selected = pages[(index + step + pages.count) % pages.count].id
             }
-            .aspectRatio(pages.count > 1 ? 0.99 : 0.91, contentMode: .fit)
+            .id(page.id)
+            .aspectRatio(0.91, contentMode: .fit)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
             .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
             .accessibilityAdjustableAction { direction in
                 let position = pages.firstIndex { $0.id == page.id } ?? 0
                 let step = direction == .increment ? 1 : -1
-                selected = pages[max(0, min(pages.count - 1, position + step))].id
+                selected = pages[(position + step + pages.count) % pages.count].id
             }
             StampActions(page: page).id(page.id)
         }

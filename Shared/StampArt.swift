@@ -106,15 +106,29 @@ struct FriendWidgetFace: View {
     var wide = false
     var body: some View {
         GeometryReader { g in
-            let width = min(g.size.width * (wide ? 0.55 : 1), (g.size.height - (wide ? 4 : 23)) / 1.105)
-            let layout = wide ? AnyLayout(HStackLayout(spacing: 16)) : AnyLayout(VStackLayout(spacing: 3))
-            layout {
-                StampArt(image: image, inscription: day)
-                    .frame(width: max(1,width), height: max(1,width) * 1.105)
-                    .shadow(color: Paper.ink.opacity(0.18), radius: 1, y: 1)
-                Text("From \(name)").font(.system(wide ? .title3 : .caption, design: .serif).italic())
-                    .lineLimit(wide ? 2 : 1).minimumScaleFactor(0.8).foregroundStyle(Paper.ink)
-            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZStack(alignment: .bottomLeading) {
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                        .frame(width: g.size.width, height: g.size.height).clipped()
+                } else {
+                    Paper.board
+                }
+                LinearGradient(stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black.opacity(0.12), location: 0.48),
+                    .init(color: .black.opacity(0.84), location: 1)
+                ], startPoint: .top, endPoint: .bottom)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("From \(name)").font(.system(wide ? .title3 : .headline, design: .serif).italic())
+                        .lineLimit(2).minimumScaleFactor(0.82)
+                    Text(day.uppercased()).font(.caption2.monospaced().weight(.semibold))
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(.white)
+                .padding(wide ? 16 : 13)
+            }
+            .frame(width: g.size.width, height: g.size.height)
+            .clipped()
         }
     }
 }

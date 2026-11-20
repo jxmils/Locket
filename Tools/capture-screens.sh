@@ -86,10 +86,12 @@ for tab in today postbox books press proof comments detail pins friend welcome e
 done
 
 cp "$fixture/unposted.json" "$fixture/books.json"
-SIMCTL_CHILD_LOCKET_CAPTURE_TAB=pressDemo xcrun simctl launch --terminate-running-process "$device" com.jasonmiller.Locket
-xcrun simctl io "$device" recordVideo --codec=h264 "$out/press-demo.mp4" &
-recorder=$!
-sleep 9
-kill -INT "$recorder"
-wait "$recorder"
-test -s "$out/press-demo.mp4"
+for scene in press swipe; do
+  SIMCTL_CHILD_LOCKET_CAPTURE_TAB="${scene}Demo" xcrun simctl launch --terminate-running-process "$device" com.jasonmiller.Locket
+  xcrun simctl io "$device" recordVideo --codec=h264 "$out/$scene-demo.mp4" &
+  recorder=$!
+  sleep 9
+  kill -INT "$recorder"
+  wait "$recorder"
+  test -s "$out/$scene-demo.mp4"
+done

@@ -46,6 +46,7 @@ struct FriendsWidget: Widget {
         .configurationDisplayName("Friends’ stamps")
         .description("Turn through the photo stamps your friends have shared.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -58,14 +59,14 @@ struct MailWidgetView: View {
                 if entry.count > 1, let id = entry.id {
                     Button(intent: NextStamp(current: id)) { card(name) }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Stamp from \(name). Next stamp.")
+                        .accessibilityLabel("Stamp from \(name), \(entry.day ?? ""). Next stamp.")
                 } else { card(name) }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: "tray")
                     Text("Postbox").font(.system(.title2, design: .serif))
                     Text("Open a friend’s book invitation to see their stamps here.").font(.caption)
-                }
+                }.padding(14)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
