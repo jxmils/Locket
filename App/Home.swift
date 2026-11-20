@@ -171,7 +171,7 @@ private struct StampDeck: View {
                 if let behind = offset > 0 ? previous : next {
                     DeckPrint(stamp: behind)
                         .scaleEffect(0.96 + 0.04 * progress)
-                        .rotationEffect(.degrees(reduceMotion ? 0 : -2 * (1 - progress)))
+                        .rotationEffect(.degrees(reduceMotion ? 0 : -2 * Double(1 - progress)))
                         .offset(y: 5 * (1 - progress))
                 }
                 DeckPrint(stamp: front)
@@ -244,8 +244,8 @@ private struct StampPager: View {
             let index = pages.firstIndex { $0.id == page.id } ?? 0
             let startingSelection = selected
             StampDeck(front: page.stamp,
-                      next: pages.count > 1 ? pages[(index + 1) % pages.count] : nil,
-                      previous: pages.count > 1 ? pages[(index + pages.count - 1) % pages.count] : nil) { step in
+                      next: pages.count > 1 ? pages[(index + 1) % pages.count].stamp : nil,
+                      previous: pages.count > 1 ? pages[(index + pages.count - 1) % pages.count].stamp : nil) { step in
                 guard selected == startingSelection else { return }
                 selected = pages[(index + step + pages.count) % pages.count].id
             }
