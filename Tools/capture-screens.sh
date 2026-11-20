@@ -16,8 +16,9 @@ for index in "${!photos[@]}"; do
   curl -fsSL --retry 3 "https://images.unsplash.com/${photos[$index]}?w=1000&q=85&fm=jpg" -o "$fixture/$index.jpg"
   sips -g pixelWidth "$fixture/$index.jpg"
 done
+curl -fsSL --retry 3 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=192&h=192&fit=crop&crop=faces&fm=jpg' -o "$fixture/portrait.jpg"
 python3 - "$fixture" <<'PY'
-import datetime as dt, json, pathlib, sys
+import base64, datetime as dt, json, pathlib, sys
 folder = pathlib.Path(sys.argv[1])
 now = dt.datetime.now(dt.timezone.utc)
 epoch = dt.datetime(2001, 1, 1, tzinfo=dt.timezone.utc)
@@ -27,7 +28,7 @@ def book(author, mine, pictures):
         when = now - dt.timedelta(days=offset)
         day = when.date().isoformat()
         stamps.append(dict(id=day, day=day, posted=(when-epoch).total_seconds(), photo=f"{picture}.jpg", thumbnail=f"{picture}.jpg"))
-    return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps)
+    return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps, portrait=None if mine else base64.b64encode((folder/"portrait.jpg").read_bytes()).decode())
 (folder/"books.json").write_text(json.dumps(dict(books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3])])))
 PY
 for tab in today postbox books; do

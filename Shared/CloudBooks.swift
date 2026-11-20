@@ -42,6 +42,16 @@ struct CloudBooks {
         _ = try saved.get()
     }
 
+    func setPortrait(_ jpeg: Data?, for book: Book) async throws {
+        let account = try await container.userRecordID().recordName
+        guard book.mine, Storage.read().own?.id == book.id, Storage.read().account == account else {
+            throw LocketIssue.signIn
+        }
+        let record = try await privateDB.record(for: .init(recordName: "book", zoneID: ownZone))
+        record["portrait"] = jpeg
+        _ = try await privateDB.save(record)
+    }
+
     func invitation(author: String) async throws -> CKShare {
         let id = CKRecord.ID(recordName: CKRecordNameZoneWideShare, zoneID: ownZone)
         do { if let existing = try await privateDB.record(for: id) as? CKShare { return existing } }
@@ -112,6 +122,7 @@ struct CloudBooks {
                     let record = try outcome.get().record
                     let id = record.recordID.recordName
                     if record.recordType == "Book" {
+                        book.portrait = record["portrait"] as? Data
                         book.author = record["author"] as? String ?? "Friend"
                         book.timeZone = record["timeZone"] as? String ?? "UTC"
                     } else if record.recordType == "Stamp" {

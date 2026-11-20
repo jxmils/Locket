@@ -147,6 +147,25 @@ struct Today: View {
     }
 }
 
+private struct BookPortrait: View {
+    let book: Book
+    var body: some View {
+        Group {
+            if let data = book.portrait, let photo = UIImage(data: data) {
+                Image(uiImage: photo).resizable().scaledToFill()
+            } else {
+                let initials = book.author.split(whereSeparator: { $0.isWhitespace }).prefix(2).compactMap(\.first)
+                Text(String(initials).uppercased()).font(.system(.headline, design: .serif))
+                    .foregroundStyle(Paper.ink).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Paper.ink.opacity(0.09))
+            }
+        }
+        .frame(width: 44, height: 44).clipShape(Circle())
+        .overlay { Circle().strokeBorder(Paper.ink.opacity(0.15)) }
+        .accessibilityHidden(true)
+    }
+}
+
 struct Postbox: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
@@ -156,6 +175,7 @@ struct Postbox: View {
             PageTitle(title: "Postbox")
             if let page = mail.first(where: { $0.id == selected }) ?? mail.first {
                 HStack {
+                    BookPortrait(book: page.book)
                     Text(page.book.author).font(.system(.title2, design: .serif))
                     Spacer()
                     Text(page.stamp.dateLabel).font(.system(.caption, design: .monospaced))
@@ -184,16 +204,34 @@ struct Books: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
     @State private var detail: Shelf.Page?
+    @State private var portraitChoice: PhotosPickerItem?
+    @State private var choosingPortrait = false
     var body: some View {
         let books = [library.shelf.own].compactMap { $0 } + library.shelf.friends
         let book = books.first { $0.id == selected } ?? books.first
         PaperPage {
             PageTitle(title: "Stamp books")
             if let book {
-                Menu {
+                HStack(spacing: 12) {
+                    BookPortrait(book: book)
+                    Menu {
                     ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id } }
                 } label: { Label(book.mine ? "My stamp book" : book.author, systemImage: "books.vertical").font(.headline)
                     Image(systemName: "chevron.down").font(.caption) }
+                    Spacer()
+                    if book.mine {
+                        Menu {
+                            Button(book.portrait == nil ? "Add profile photo" : "Change profile photo") { choosingPortrait = true }
+                            if book.portrait != nil {
+                                Button("Remove profile photo", role: .destructive) {
+                                    Task { await library.setPortrait(nil, for: book) }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "camera").frame(width: 44, height: 44)
+                        }.accessibilityLabel("Edit profile photo").disabled(library.saving)
+                    }
+                }
                 if book.stamps.isEmpty { Text("The first stamp will go here.").foregroundStyle(.secondary) }
                 let months = Dictionary(grouping: book.stamps) { String($0.day.prefix(7)) }
                 ForEach(months.keys.sorted(by: >), id: \.self) { month in
@@ -210,6 +248,17 @@ struct Books: View {
                     }
                 }
             } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
+        }
+        .photosPicker(isPresented: $choosingPortrait, selection: $portraitChoice, matching: .images)
+        .task(id: portraitChoice) {
+            guard let portraitChoice, let owner = library.shelf.own else { return }
+            do {
+                guard let data = try await portraitChoice.loadTransferable(type: Data.self) else { throw LocketIssue.photo }
+                let jpeg = try await Task.detached { try Storage.bytes(data, limit: 256) }.value
+                try Task.checkCancellation()
+                await library.setPortrait(jpeg, for: owner)
+            } catch { if !Task.isCancelled { library.message = error.localizedDescription } }
+            if !Task.isCancelled { self.portraitChoice = nil }
         }
         .sheet(item: $detail) { page in
             PaperPage {

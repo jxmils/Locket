@@ -6,6 +6,7 @@ struct Book: Codable, Identifiable, Equatable {
     var timeZone: String
     var mine: Bool
     var stamps: [Stamp] = []
+    var portrait: Data?
     var changeToken: Data?
 
     func day(_ date: Date) -> String {

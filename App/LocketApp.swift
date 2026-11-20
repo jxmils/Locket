@@ -46,6 +46,16 @@ final class Library: ObservableObject {
         await refresh()
         return true
     }
+    func setPortrait(_ jpeg: Data?, for book: Book) async {
+        guard !saving else { return }
+        saving = true
+        defer { saving = false }
+        do {
+            try await cloud.setPortrait(jpeg, for: book)
+            await refresh()
+        } catch { message = error.localizedDescription }
+    }
+
     func accept(_ metadata: CKShare.Metadata) async {
         do { try await cloud.accept(metadata); await refresh() }
         catch { message = error.localizedDescription }
