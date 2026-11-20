@@ -24,7 +24,7 @@ struct Home: View {
         .tint(Paper.ink)
         .preferredColorScheme(.light)
         .onOpenURL { url in if url.scheme == "locketstamps" { tab = url.host == "today" ? .today : .postbox } }
-        .alert("Locket", isPresented: Binding(get: { library.message != nil }, set: { if !$0 { library.message = nil } })) {
+        .alert("Stampnote", isPresented: Binding(get: { library.message != nil }, set: { if !$0 { library.message = nil } })) {
             Button("OK") { library.message = nil }
         } message: { Text(library.message ?? "") }
     }
