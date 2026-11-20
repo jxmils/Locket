@@ -120,15 +120,82 @@ private struct LivePicture: UIViewRepresentable {
     }
 }
 
-/// Normalize EXIF orientation first, then keep the centered square shown by the viewfinder.
-private func stampPhoto(_ data: Data) throws -> Data {
-    let normalized = try Storage.bytes(data, limit: 2048)
-    guard let bitmap = UIImage(data: normalized)?.cgImage else { throw LocketIssue.photo }
-    let size = min(bitmap.width, bitmap.height)
-    let rect = CGRect(x: (bitmap.width-size)/2, y: (bitmap.height-size)/2, width: size, height: size)
-    guard let crop = bitmap.cropping(to: rect), let bytes = UIImage(cgImage: crop).jpegData(compressionQuality: 0.94)
-    else { throw LocketIssue.photo }
-    return bytes
+private enum StampCut {
+    static let widthFraction: CGFloat = 0.91
+
+    /// Match the portrait aspect-fill preview, then cut the photograph inside the paper guide.
+    static func expose(_ data: Data) throws -> (viewfinder: UIImage, print: Data) {
+        let normalized = try Storage.bytes(data, limit: 2048)
+        guard let raw = UIImage(data: normalized)?.cgImage else { throw LocketIssue.photo }
+        let width = min(CGFloat(raw.width), CGFloat(raw.height) / StampLayout.heightPerWidth)
+        let height = width * StampLayout.heightPerWidth
+        let viewport = CGRect(x: (CGFloat(raw.width) - width) / 2, y: (CGFloat(raw.height) - height) / 2,
+                              width: width, height: height).integral
+        guard let frame = raw.cropping(to: viewport) else { throw LocketIssue.photo }
+        let paperWidth = CGFloat(frame.width) * widthFraction
+        let margin = paperWidth * StampLayout.photoInset
+        let side = floor(paperWidth - 2 * margin)
+        let rect = CGRect(x: floor((CGFloat(frame.width) - side) / 2),
+                          y: floor((CGFloat(frame.height) - paperWidth * StampLayout.heightPerWidth) / 2 + margin),
+                          width: side, height: side)
+        guard let print = frame.cropping(to: rect),
+              let jpeg = UIImage(cgImage: print).jpegData(compressionQuality: 0.94) else { throw LocketIssue.photo }
+        return (UIImage(cgImage: frame), jpeg)
+    }
+}
+
+private enum PressPosition { case off, raised, down, lifting }
+
+/// A turned wooden grip on a brass cutting plate. The die shares its footprint with the paper.
+private struct PostagePress: View {
+    var body: some View {
+        GeometryReader { g in
+            let w = g.size.width
+            let h = g.size.height
+            let brass = Color(red: 0.70, green: 0.49, blue: 0.25)
+            let rim = Color(red: 0.29, green: 0.21, blue: 0.16)
+            ZStack {
+                PerforatedPaper().fill(rim)
+                RoundedRectangle(cornerRadius: w * 0.048)
+                    .fill(LinearGradient(colors: [Color(red: 0.94, green: 0.82, blue: 0.62), brass, rim],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .padding(w * 0.016)
+                RoundedRectangle(cornerRadius: w * 0.032)
+                    .fill(LinearGradient(colors: [Color(red: 0.26, green: 0.38, blue: 0.37),
+                                                  Color(red: 0.09, green: 0.17, blue: 0.18)],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .padding(w * 0.04)
+                RoundedRectangle(cornerRadius: w * 0.024)
+                    .strokeBorder(brass.opacity(0.8), lineWidth: 1).padding(w * 0.060)
+                ForEach(0..<4) { i in
+                    Circle().fill(brass)
+                        .overlay { Capsule().fill(rim).frame(width: w * 0.017, height: 1).rotationEffect(.degrees(-28)) }
+                        .frame(width: w * 0.032, height: w * 0.032)
+                        .position(x: w * (i.isMultiple(of: 2) ? 0.094 : 0.906), y: h * (i < 2 ? 0.09 : 0.91))
+                }
+                Ellipse().fill(.black.opacity(0.32)).frame(width: w * 0.40, height: w * 0.13)
+                    .blur(radius: w * 0.014).offset(x: w * 0.025, y: h * 0.082)
+                Ellipse().fill(brass.gradient).frame(width: w * 0.34, height: w * 0.12).offset(y: h * 0.065)
+                Path { p in
+                    p.move(to: CGPoint(x: 0.43*w, y: 0.57*h))
+                    p.addQuadCurve(to: CGPoint(x: 0.40*w, y: 0.40*h), control: CGPoint(x: 0.47*w, y: 0.43*h))
+                    p.addCurve(to: CGPoint(x: 0.34*w, y: 0.29*h), control1: CGPoint(x: 0.35*w, y: 0.37*h), control2: CGPoint(x: 0.32*w, y: 0.34*h))
+                    p.addCurve(to: CGPoint(x: 0.66*w, y: 0.29*h), control1: CGPoint(x: 0.37*w, y: 0.20*h), control2: CGPoint(x: 0.63*w, y: 0.20*h))
+                    p.addCurve(to: CGPoint(x: 0.60*w, y: 0.40*h), control1: CGPoint(x: 0.68*w, y: 0.34*h), control2: CGPoint(x: 0.65*w, y: 0.37*h))
+                    p.addQuadCurve(to: CGPoint(x: 0.57*w, y: 0.57*h), control: CGPoint(x: 0.53*w, y: 0.43*h))
+                    p.addQuadCurve(to: CGPoint(x: 0.43*w, y: 0.57*h), control: CGPoint(x: 0.50*w, y: 0.60*h))
+                    p.closeSubpath()
+                }
+                .fill(LinearGradient(stops: [
+                    .init(color: Color(red: 0.29, green: 0.12, blue: 0.07), location: 0),
+                    .init(color: Color(red: 0.73, green: 0.43, blue: 0.24), location: 0.32),
+                    .init(color: Color(red: 0.48, green: 0.22, blue: 0.12), location: 0.55),
+                    .init(color: Color(red: 0.22, green: 0.10, blue: 0.07), location: 1)
+                ], startPoint: .leading, endPoint: .trailing))
+            }
+        }
+        .accessibilityHidden(true).allowsHitTesting(false)
+    }
 }
 
 struct StampCamera: View {
@@ -141,7 +208,8 @@ struct StampCamera: View {
     @State private var front = false
     @State private var ready = false
     @State private var taking = false
-    @State private var contact = false
+    @State private var press: PressPosition = .off
+    @State private var exposure: UIImage?
     @State private var impression = false
     @State private var lockedPhoto: Data?
     @State private var selected: PhotosPickerItem?
@@ -167,51 +235,7 @@ struct StampCamera: View {
                         .font(.caption2.monospaced().weight(.medium))
                 }.padding(.horizontal, 22).padding(.top, 12)
                 Spacer(minLength: 8)
-                PostageFace(date: date, inked: impression) {
-                    if let lockedPhoto, let img = UIImage(data: lockedPhoto) {
-                        Image(uiImage: img).resizable().scaledToFill()
-                    } else if let fixture, let img = UIImage(data: fixture) {
-                        Image(uiImage: img).resizable().scaledToFill()
-                    } else {
-                        ZStack {
-                            dark
-                            LivePicture(session: lens.session, front: front, ready: ready).opacity(ready ? 1 : 0)
-                            if !ready && problem == nil { ProgressView().tint(.white) }
-                            if let problem {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "camera").font(.title)
-                                    Text(problem).font(.callout).multilineTextAlignment(.center)
-                                    if accessDenied {
-                                        Button("Open Settings") {
-                                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                                        }.underline()
-                                    }
-                                }.padding(24).foregroundStyle(.white)
-                            }
-                        }
-                    }
-                }
-                .frame(width: width, height: width * 1.105)
-                .scaleEffect(reduceMotion ? 1 : contact ? 0.964 : 1)
-                .overlay {
-                    // The full die descends onto the frozen print and leaves the perforations and ink behind.
-                    ZStack {
-                        PerforatedPaper().stroke(Paper.stock, lineWidth: max(3, width * 0.018))
-                        Rectangle().strokeBorder(Paper.red.opacity(0.85), lineWidth: 1.5)
-                            .padding(width * 0.034)
-                        Postmark(date: date).frame(width: width * 0.43, height: width * 0.128)
-                            .rotationEffect(.degrees(-6))
-                            .position(x: width * 0.81, y: width * 0.991)
-                    }
-                        .shadow(color: .black.opacity(contact ? 0 : 0.5), radius: 4, y: 5)
-                        .scaleEffect(reduceMotion ? 1 : (contact ? 1 : 1.16), anchor: .center)
-                        .offset(y: reduceMotion ? 0 : (contact ? 0 : -28))
-                        .opacity(taking && lockedPhoto != nil && !impression ? 0.94 : 0)
-                        .allowsHitTesting(false)
-                }
-                .shadow(color: .black.opacity(contact ? 0.14 : 0.38), radius: contact ? 1 : 7, y: contact ? 1 : 6)
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(lockedPhoto == nil ? "Stamp-shaped camera viewfinder" : "Captured photo stamp")
+                cutViewfinder(width: width)
                 Spacer(minLength: 8)
                 if lockedPhoto != nil && !taking {
                     HStack(spacing: 18) {
@@ -263,7 +287,18 @@ struct StampCamera: View {
             if ["press","pressDemo","proof"].contains(Storage.captureTab ?? ""), let root = Storage.root {
                 fixture = try? Data(contentsOf: root.appendingPathComponent("1.jpg"))
                 if Storage.captureTab != "press" {
-                    do { try await Task.sleep(for: .milliseconds(Storage.captureTab == "proof" ? 150 : 3000)); shutter() } catch {}
+                    do {
+                        if Storage.captureTab == "pressDemo" {
+                            let cue = root.appendingPathComponent("record-shutter")
+                            while !FileManager.default.fileExists(atPath: cue.path) {
+                                try await Task.sleep(for: .milliseconds(100))
+                            }
+                        } else {
+                            try await Task.sleep(for: .milliseconds(150))
+                        }
+                        try Task.checkCancellation()
+                        shutter()
+                    } catch {}
                 }
                 return
             }
@@ -294,13 +329,77 @@ struct StampCamera: View {
             }
             if !Task.isCancelled { self.selected = nil }
         }
-        .onDisappear { run = UUID(); lens.stop(); taking = false; contact = false; impression = lockedPhoto != nil }
+        .onDisappear { run = UUID(); lens.stop(); taking = false; press = .off; impression = lockedPhoto != nil }
+    }
+
+    @ViewBuilder private var liveSurface: some View {
+        if let fixture, let img = UIImage(data: fixture) {
+            Image(uiImage: img).resizable().scaledToFill()
+        } else {
+            ZStack {
+                dark
+                LivePicture(session: lens.session, front: front, ready: ready).opacity(ready ? 1 : 0)
+                if !ready && problem == nil { ProgressView().tint(.white) }
+                if let problem {
+                    VStack(spacing: 12) {
+                        Image(systemName: "camera").font(.title)
+                        Text(problem).font(.callout).multilineTextAlignment(.center)
+                        if accessDenied {
+                            Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                            }.underline()
+                        }
+                    }.padding(24).foregroundStyle(.white)
+                }
+            }
+        }
+    }
+
+    private func cutViewfinder(width: CGFloat) -> some View {
+        let height = width * StampLayout.heightPerWidth
+        let cut = width * StampCut.widthFraction
+        let cutHeight = cut * StampLayout.heightPerWidth
+        return ZStack {
+            Group {
+                if let exposure { Image(uiImage: exposure).resizable().scaledToFill() }
+                else { liveSurface }
+            }
+            .frame(width: width, height: height).clipped()
+            .opacity(impression ? 0.12 : 1)
+
+            PerforatedPaper().stroke(Paper.stock.opacity(0.86), style: StrokeStyle(lineWidth: 1.4, dash: [4, 3]))
+                .frame(width: cut, height: cutHeight)
+                .shadow(color: .black.opacity(0.8), radius: 1)
+                .opacity(impression ? 0 : 1).allowsHitTesting(false)
+
+            if impression, let lockedPhoto, let picture = UIImage(data: lockedPhoto) {
+                PostageFace(date: date) { Image(uiImage: picture).resizable().scaledToFill() }
+                    .frame(width: cut, height: cutHeight)
+                    .shadow(color: .black.opacity(0.55), radius: 5, y: 4)
+                    .transition(.opacity)
+            }
+            if !reduceMotion && press != .off {
+                PostagePress()
+                    .frame(width: cut, height: cutHeight)
+                    .rotation3DEffect(.degrees(press == .down ? 0 : 38), axis: (x: 1, y: 0, z: 0))
+                    .rotationEffect(.degrees(press == .down ? 0 : -8))
+                    .shadow(color: .black.opacity(0.58), radius: press == .down ? 2 : 11, y: press == .down ? 2 : 17)
+                    .offset(y: press == .down ? 0 : -height * 0.94)
+                    .opacity(press == .lifting ? 0 : 1)
+                    .transition(.identity)
+            }
+        }
+        .frame(width: width, height: height)
+        .clipped()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(lockedPhoto == nil ? "Stamp-shaped camera viewfinder" : "Captured photo stamp")
     }
 
     private func reset() {
         run = UUID()
         lockedPhoto = nil
-        contact = false
+        press = .off
+        exposure = nil
         impression = false
         taking = false
     }
@@ -321,18 +420,27 @@ struct StampCamera: View {
     }
 
     @MainActor private func finish(_ bytes: Data, ticket: UUID) async throws {
-        let square = try await Task.detached { try stampPhoto(bytes) }.value
+        let shot = try await Task.detached { try StampCut.expose(bytes) }.value
         guard ticket == run, !Task.isCancelled else { return }
-        lockedPhoto = square
-        try await Task.sleep(for: .milliseconds(45))
-        guard ticket == run else { return }
-        withAnimation(reduceMotion ? nil : .easeIn(duration: 0.15)) { contact = true }
-        try await Task.sleep(for: .milliseconds(150))
-        guard ticket == run else { return }
+        exposure = shot.viewfinder
+        lockedPhoto = shot.print
+        if !reduceMotion {
+            press = .raised
+            try await Task.sleep(for: .milliseconds(30))
+            guard ticket == run else { return }
+            withAnimation(.easeIn(duration: 0.17)) { press = .down }
+            try await Task.sleep(for: .milliseconds(170))
+            guard ticket == run else { return }
+        }
         withAnimation(.easeOut(duration: 0.12)) { impression = true }
-        try await Task.sleep(for: .milliseconds(95))
-        guard ticket == run else { return }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.77)) { contact = false }
+        if !reduceMotion {
+            try await Task.sleep(for: .milliseconds(90))
+            guard ticket == run else { return }
+            withAnimation(.easeOut(duration: 0.23)) { press = .lifting }
+            try await Task.sleep(for: .milliseconds(230))
+            guard ticket == run else { return }
+        }
+        press = .off
         taking = false
     }
 }

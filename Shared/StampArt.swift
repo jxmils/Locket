@@ -41,9 +41,14 @@ struct PerforatedPaper: Shape {
     }
 }
 
+enum StampLayout {
+    static let heightPerWidth: CGFloat = 1.105
+    static let photoInset: CGFloat = 0.043
+}
+
 /// One physical layout for the lens, the frozen proof, the feed and the book.
 struct PostageFace<Picture: View>: View {
-    static var aspect: CGFloat { 1 / 1.105 }
+    static var aspect: CGFloat { 1 / StampLayout.heightPerWidth }
     let date: String
     var inked = true
     @ViewBuilder let picture: () -> Picture
@@ -51,7 +56,7 @@ struct PostageFace<Picture: View>: View {
     var body: some View {
         GeometryReader { g in
             let w = g.size.width
-            let margin = w * 0.043
+            let margin = w * StampLayout.photoInset
             let side = w - 2 * margin
             ZStack(alignment: .topLeading) {
                 PerforatedPaper().fill(Paper.stock)
@@ -99,37 +104,73 @@ struct Postmark: View {
     }
 }
 
+struct SenderPortrait: View {
+    let name: String
+    let data: Data?
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let data, let photo = UIImage(data: data) {
+                Image(uiImage: photo).resizable().scaledToFill()
+            } else {
+                let initials = name.split(whereSeparator: { $0.isWhitespace }).prefix(2).compactMap(\.first)
+                Text(String(initials).uppercased()).font(.system(size: size * 0.39, weight: .medium, design: .serif))
+                    .foregroundStyle(Paper.ink).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Paper.lining)
+            }
+        }
+        .frame(width: size, height: size).clipShape(Circle())
+        .overlay { Circle().strokeBorder(Paper.ink.opacity(0.15)) }
+        .accessibilityHidden(true)
+    }
+}
+
 struct FriendWidgetFace: View {
     let name: String
     let day: String
     let image: UIImage?
-    var wide = false
+    let portrait: Data?
+
     var body: some View {
         GeometryReader { g in
-            ZStack(alignment: .bottomLeading) {
-                if let image {
-                    Image(uiImage: image).resizable().scaledToFill()
-                        .frame(width: g.size.width, height: g.size.height).clipped()
-                } else {
-                    Paper.board
+            let compact = g.size.width < 200
+            let edge: CGFloat = compact ? 6 : 8
+            let avatar: CGFloat = compact ? 25 : 33
+            VStack(spacing: 0) {
+                GeometryReader { photo in
+                    ZStack {
+                        Paper.lining
+                        if let image {
+                            Image(uiImage: image).resizable().scaledToFill()
+                        }
+                    }
+                    .frame(width: photo.size.width, height: photo.size.height).clipped()
+                    .overlay(alignment: .bottomTrailing) {
+                        if compact {
+                            Postmark(date: day).frame(width: 78, height: 27)
+                                .rotationEffect(.degrees(-6)).padding(3)
+                        }
+                    }
                 }
-                LinearGradient(stops: [
-                    .init(color: .clear, location: 0),
-                    .init(color: .black.opacity(0.12), location: 0.48),
-                    .init(color: .black.opacity(0.84), location: 1)
-                ], startPoint: .top, endPoint: .bottom)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("From \(name)").font(.system(wide ? .title3 : .headline, design: .serif).italic())
-                        .lineLimit(2).minimumScaleFactor(0.82)
-                    Text(day.uppercased()).font(.caption2.monospaced().weight(.semibold))
-                        .lineLimit(1).minimumScaleFactor(0.8)
+                HStack(spacing: 6) {
+                    SenderPortrait(name: name, data: portrait, size: avatar)
+                    Text(name).italic().font(.system(compact ? .subheadline : .headline, design: .serif))
+                        .lineLimit(1).minimumScaleFactor(0.75).foregroundStyle(Paper.ink)
+                    Spacer(minLength: 0)
+                    if !compact {
+                        Postmark(date: day).frame(width: 112, height: 34).rotationEffect(.degrees(-6))
+                    }
                 }
-                .foregroundStyle(.white)
-                .padding(wide ? 16 : 13)
+                .padding(.horizontal, 4).padding(.top, 3)
             }
-            .frame(width: g.size.width, height: g.size.height)
-            .clipped()
+            .padding(edge)
+            .background(Paper.stock)
+            .clipShape(PerforatedPaper())
+            .background(Paper.board)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Stamp from \(name), \(day)")
     }
 }
 

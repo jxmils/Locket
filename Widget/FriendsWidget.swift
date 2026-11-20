@@ -7,6 +7,7 @@ struct MailEntry: TimelineEntry {
     var day: String?
     var id: String?
     var image: UIImage?
+    var portrait: Data?
     var count = 0
 }
 
@@ -31,7 +32,7 @@ struct MailProvider: TimelineProvider {
         let mail = Storage.read().mail
         guard let page = mail.first(where: { $0.id == Storage.selectedPage }) ?? mail.first else { return MailEntry() }
         return MailEntry(name: page.book.author, day: page.stamp.dateLabel, id: page.id,
-                         image: page.stamp.image(), count: mail.count)
+                         image: page.stamp.image(), portrait: page.book.portrait, count: mail.count)
     }
 }
 
@@ -52,7 +53,6 @@ struct FriendsWidget: Widget {
 
 struct MailWidgetView: View {
     let entry: MailEntry
-    @Environment(\.widgetFamily) private var family
     var body: some View {
         Group {
             if let name = entry.name {
@@ -73,6 +73,6 @@ struct MailWidgetView: View {
         .foregroundStyle(Paper.ink).privacySensitive()
     }
     @ViewBuilder private func card(_ name: String) -> some View {
-        FriendWidgetFace(name: name, day: entry.day ?? "", image: entry.image, wide: family == .systemMedium)
+        FriendWidgetFace(name: name, day: entry.day ?? "", image: entry.image, portrait: entry.portrait)
     }
 }

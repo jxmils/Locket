@@ -22,7 +22,7 @@ struct Home: View {
         if let tab = Storage.captureTab, tab.hasPrefix("widget-"), let page = library.shelf.mail.first {
             let size: CGSize = tab == "widget-small" ? .init(width: 158, height: 158) :
                 tab == "widget-medium" ? .init(width: 338, height: 158) : .init(width: 338, height: 354)
-            FriendWidgetFace(name: page.book.author, day: page.stamp.dateLabel, image: page.stamp.image(), wide: tab == "widget-medium")
+            FriendWidgetFace(name: page.book.author, day: page.stamp.dateLabel, image: page.stamp.image(), portrait: page.book.portrait)
                 .frame(width: size.width, height: size.height)
                 .clipShape(RoundedRectangle(cornerRadius: 22))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -35,9 +35,9 @@ struct Home: View {
 
     private var tabs: some View {
         TabView(selection: $tab) {
-            Postbox { tab = .today }.tabItem { Label("Postbox", systemImage: "envelope") }.tag(SectionTab.postbox)
-            Today(active: tab == .today).tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)
-            Books().tabItem { Label("Stamp books", systemImage: "books.vertical") }.tag(SectionTab.books)
+            Postbox().tabItem { Label("Postbox", image: "TabMail") }.tag(SectionTab.postbox)
+            Today(active: tab == .today).tabItem { Label("Today", image: "TabCamera") }.tag(SectionTab.today)
+            Books().tabItem { Label("Stamp books", image: "TabAlbum") }.tag(SectionTab.books)
         }
         .tint(Paper.ink)
         .preferredColorScheme(.light)
@@ -130,19 +130,7 @@ struct BookPortrait: View {
     let book: Book
     var size: CGFloat = 44
     var body: some View {
-        Group {
-            if let data = book.portrait, let photo = UIImage(data: data) {
-                Image(uiImage: photo).resizable().scaledToFill()
-            } else {
-                let initials = book.author.split(whereSeparator: { $0.isWhitespace }).prefix(2).compactMap(\.first)
-                Text(String(initials).uppercased()).font(.system(.headline, design: .serif))
-                    .foregroundStyle(Paper.ink).frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Paper.lining)
-            }
-        }
-        .frame(width: size, height: size).clipShape(Circle())
-        .overlay { Circle().strokeBorder(Paper.ink.opacity(0.15)) }
-        .accessibilityHidden(true)
+        SenderPortrait(name: book.author, data: book.portrait, size: size)
     }
 }
 
@@ -292,7 +280,6 @@ struct OpenBook: View {
 }
 
 struct Postbox: View {
-    let openToday: () -> Void
     @EnvironmentObject private var library: Library
     @State private var selected: String?
     var body: some View {
@@ -303,29 +290,9 @@ struct Postbox: View {
                 Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased())
                     .font(.caption2.monospaced().weight(.semibold)).fixedSize()
             }
-            TimelineView(.periodic(from: .now, by: 15)) { timeline in
+            if !mail.isEmpty {
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 16) {
-                        if library.shelf.own.map({ book in !book.stamps.contains { $0.day == book.day(timeline.date) } }) ?? true {
-                            Button(action: openToday) {
-                                VStack(spacing: 5) {
-                                    ZStack {
-                                        PerforatedPaper().fill(Paper.ink)
-                                        Rectangle().strokeBorder(Paper.stock.opacity(0.76), lineWidth: 0.8)
-                                            .padding(5)
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 20, weight: .semibold))
-                                            .foregroundStyle(Paper.stock)
-                                    }
-                                    .frame(width: 35, height: 40)
-                                    .rotationEffect(.degrees(-6))
-                                    .frame(width: 49, height: 49)
-                                    .accessibilityHidden(true)
-                                    Text("Make today’s stamp").font(.caption.weight(.semibold))
-                                }
-                            }.buttonStyle(.plain)
-                                .accessibilityHint(library.shelf.own == nil ? "Starts your stamp book" : "Opens your stamp-shaped viewfinder")
-                        }
                         ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
                             Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
                                 VStack(spacing: 5) {
@@ -339,8 +306,6 @@ struct Postbox: View {
                         }
                     }.padding(.vertical, 2)
                 }.scrollIndicators(.hidden)
-            }
-            if !mail.isEmpty {
                 StampPager(pages: mail, selected: $selected)
             } else {
                 ZStack {
