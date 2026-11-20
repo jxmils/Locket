@@ -2,11 +2,19 @@ import PhotosUI
 import SwiftUI
 import AVFoundation
 
-private enum SectionTab: Hashable { case today, postbox, books }
+private enum SectionTab: String, Hashable { case today, postbox, books }
 
 struct Home: View {
     @EnvironmentObject private var library: Library
     @State private var tab: SectionTab = .today
+    init() {
+        #if DEBUG && targetEnvironment(simulator)
+        if let tabName = Storage.captureTab, let selected = SectionTab(rawValue: tabName) {
+            _tab = State(initialValue: selected)
+        }
+        #endif
+    }
+
     var body: some View {
         TabView(selection: $tab) {
             Today().tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)

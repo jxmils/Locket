@@ -21,7 +21,18 @@ enum LocketIssue: LocalizedError {
 enum Storage {
     static let group = "group.com.jasonmiller.Locket"
     static let widget = "FriendsStamps"
-    static var root: URL? { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) }
+    #if DEBUG && targetEnvironment(simulator)
+    static var captureTab: String? { ProcessInfo.processInfo.environment["LOCKET_CAPTURE_TAB"] }
+    #endif
+
+    static var root: URL? {
+        #if DEBUG && targetEnvironment(simulator)
+        if captureTab != nil {
+            return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("LocketCapture")
+        }
+        #endif
+        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
+    }
 
     static func key(_ value: String) -> String {
         SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()

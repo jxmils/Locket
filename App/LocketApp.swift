@@ -5,12 +5,15 @@ import WidgetKit
 @MainActor
 final class Library: ObservableObject {
     static let main = Library()
-    let cloud = CloudBooks()
+    lazy var cloud = CloudBooks()
     @Published var shelf = Storage.read()
     @Published var message: String?
     @Published var saving = false
 
     func refresh(silent: Bool = false) async {
+        #if DEBUG && targetEnvironment(simulator)
+        if Storage.captureTab != nil { return }
+        #endif
         do {
             let updated = try await cloud.refresh()
             if updated != shelf {

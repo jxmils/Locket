@@ -31,6 +31,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CKSharingSupported</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo for your daily stamp.</string>
 	<key>UIApplicationSceneManifest</key>
