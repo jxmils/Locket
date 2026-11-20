@@ -30,10 +30,24 @@ def book(author, mine, pictures):
         day = when.date().isoformat()
         stamps.append(dict(id=day, day=day, posted=(when-epoch).total_seconds(), photo=f"{picture}.jpg", thumbnail=f"{picture}.jpg"))
     return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps, portrait=base64.b64encode((folder/("owner.jpg" if mine else "portrait.jpg")).read_bytes()).decode() if mine or author=="Alex" else None)
-(folder/"books.json").write_text(json.dumps(dict(books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3]), book("Maya", False, [1]), book("Noah", False, [3])])))
+books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3]), book("Maya", False, [1]), book("Noah", False, [3])]
+(folder/"posted.json").write_text(json.dumps(dict(books=books)))
+books[0]["stamps"]=books[0]["stamps"][1:]
+(folder/"unposted.json").write_text(json.dumps(dict(books=books)))
 PY
-for tab in today postbox books; do
+for tab in today postbox books press; do
+  sample=posted
+  if [[ "$tab" == postbox || "$tab" == press ]]; then sample=unposted; fi
+  cp "$fixture/$sample.json" "$fixture/books.json"
   SIMCTL_CHILD_LOCKET_CAPTURE_TAB="$tab" xcrun simctl launch --terminate-running-process "$device" com.jasonmiller.Locket
   sleep 4
   xcrun simctl io "$device" screenshot "$out/$tab.png"
 done
+
+SIMCTL_CHILD_LOCKET_CAPTURE_TAB=pressDemo xcrun simctl launch --terminate-running-process "$device" com.jasonmiller.Locket
+xcrun simctl io "$device" recordVideo --codec=h264 "$out/press-demo.mp4" &
+recorder=$!
+sleep 9
+kill -INT "$recorder"
+wait "$recorder"
+test -s "$out/press-demo.mp4"

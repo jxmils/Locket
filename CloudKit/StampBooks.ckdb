@@ -9,6 +9,8 @@ DEFINE SCHEMA
         "___recordID"   REFERENCE,
         author STRING,
         portrait BYTES,
+        mailbox BYTES,
+        keyring BYTES,
         timeZone STRING,
         GRANT WRITE TO "_creator"
     );
@@ -22,6 +24,31 @@ DEFINE SCHEMA
         "___recordID"   REFERENCE,
         posted TIMESTAMP,
         photo ASSET,
+        GRANT WRITE TO "_creator"
+    );
+
+    RECORD TYPE MailboxIdentity (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        secret BYTES,
+        GRANT WRITE TO "_creator"
+    );
+
+    RECORD TYPE StampActivity (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        target STRING,
+        kind STRING,
+        day STRING,
+        contents BYTES,
         GRANT WRITE TO "_creator"
     );
 

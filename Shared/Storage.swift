@@ -5,9 +5,11 @@ import UniformTypeIdentifiers
 import Darwin
 
 enum LocketIssue: LocalizedError {
-    case signIn, busy, photo, used, name, unavailable
+    case signIn, busy, photo, used, name, unavailable, mutual, comment
     var errorDescription: String? {
         switch self {
+        case .mutual: "Share your books with each other to leave likes and comments."
+        case .comment: "Write a comment between 1 and 500 characters."
         case .signIn: "Sign in to iCloud in Settings to use your stamp book."
         case .busy: "Your book is updating. Try again in a moment."
         case .photo: "That photo couldn’t be opened. Try another one."

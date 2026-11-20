@@ -7,6 +7,12 @@ struct Book: Codable, Identifiable, Equatable {
     var mine: Bool
     var stamps: [Stamp] = []
     var portrait: Data?
+    var mailbox: Data?
+    var keyring: Data?
+    // This key is unwrapped locally after reading a mutually shared book.
+    var discussionKey: Data?
+    var priorDiscussionKeys: [Data]?
+    var activities: [BookActivity]?
     var changeToken: Data?
 
     func day(_ date: Date) -> String {
@@ -63,4 +69,13 @@ struct Shelf: Codable, Equatable {
         guard let id, let current = ids.firstIndex(of: id) else { return ids.first }
         return ids[(current + 1) % ids.count]
     }
+}
+
+struct BookActivity: Codable, Equatable, Identifiable {
+    let id: String
+    let target: String
+    let kind: String
+    let day: String
+    let created: Date
+    let contents: Data?
 }

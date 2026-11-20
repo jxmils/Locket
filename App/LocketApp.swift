@@ -35,6 +35,14 @@ final class Library: ObservableObject {
         guard !saving, let book = shelf.own else { return false }
         saving = true
         defer { saving = false }
+        #if DEBUG && targetEnvironment(simulator)
+        if Storage.captureTab == "pressDemo", let i = shelf.books.firstIndex(where: { $0.mine }) {
+            let day = book.day(.now)
+            shelf.books[i].stamps.insert(Stamp(id: day, day: day, posted: .now, photo: "1.jpg", thumbnail: "1.jpg"), at: 0)
+            try? await Task.sleep(for: .milliseconds(260))
+            return true
+        }
+        #endif
         do {
             let jpeg = try await Task.detached { try Storage.bytes(data, limit: 1600) }.value
             try await cloud.post(jpeg: jpeg, book: book)
@@ -54,6 +62,24 @@ final class Library: ObservableObject {
             try await cloud.setPortrait(jpeg, for: book)
             await refresh()
         } catch { message = error.localizedDescription }
+    }
+
+    func act(_ action: StampAction, on page: Shelf.Page, text: String = "", id: String = "", remove: Bool = false) async -> Bool {
+        guard !saving else { return false }
+        guard shelf.own != nil else {
+            message = "Start your stamp book in Today first."
+            return false
+        }
+        saving = true
+        defer { saving = false }
+        do {
+            try await cloud.write(action, page: page, text: text, id: id, remove: remove)
+            await refresh()
+            return true
+        } catch {
+            message = error.localizedDescription
+            return false
+        }
     }
 
     func accept(_ metadata: CKShare.Metadata) async {
