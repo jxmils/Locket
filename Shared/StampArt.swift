@@ -2,10 +2,13 @@ import SwiftUI
 import UIKit
 
 enum Paper {
-    static let page = Color(red: 0.96, green: 0.94, blue: 0.88)
+    static let page = Color(red: 0.982, green: 0.977, blue: 0.966)
+    static let plum = Color(red: 0.29, green: 0.18, blue: 0.35)
+    static let lilac = Color(red: 0.88, green: 0.84, blue: 0.98)
+    static let melon = Color(red: 1, green: 0.76, blue: 0.65)
     static let stock = Color(red: 1, green: 0.985, blue: 0.94)
-    static let ink = Color(red: 0.10, green: 0.22, blue: 0.17)
-    static let red = Color(red: 0.63, green: 0.20, blue: 0.13)
+    static let ink = Color(red: 0.13, green: 0.105, blue: 0.145)
+    static let red = Color(red: 0.72, green: 0.18, blue: 0.16)
 }
 
 /// Perforations follow the four edges at the same physical pitch.
@@ -41,16 +44,17 @@ struct PerforatedPaper: Shape {
 
 struct StampArt: View {
     var image: UIImage?
+    var ratio: CGFloat = 1
     var body: some View {
         GeometryReader { geo in
-            let pad = min(geo.size.width, geo.size.height) * 0.074
+            let pad = min(geo.size.width, geo.size.height) * 0.043
             ZStack {
                 PerforatedPaper().fill(Paper.stock)
                 Group {
                     if let image { Image(uiImage: image).resizable().scaledToFill() }
                     else {
                         ZStack {
-                            Color(red: 0.83, green: 0.85, blue: 0.75)
+                            Paper.lilac
                             Image(systemName: "camera.aperture").font(.system(size: max(14, pad * 2.3), weight: .ultraLight))
                                 .foregroundStyle(Paper.ink)
                         }
@@ -59,7 +63,7 @@ struct StampArt: View {
                 .frame(width: max(0, geo.size.width - 2 * pad), height: max(0, geo.size.height - 2 * pad))
                 .clipped()
             }
-        }.aspectRatio(1, contentMode: .fit)
+        }.aspectRatio(ratio, contentMode: .fit)
     }
 }
 

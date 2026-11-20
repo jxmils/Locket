@@ -17,6 +17,7 @@ for index in "${!photos[@]}"; do
   sips -g pixelWidth "$fixture/$index.jpg"
 done
 curl -fsSL --retry 3 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=192&h=192&fit=crop&crop=faces&fm=jpg' -o "$fixture/portrait.jpg"
+curl -fsSL --retry 3 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=192&h=192&fit=crop&crop=faces&fm=jpg' -o "$fixture/owner.jpg"
 python3 - "$fixture" <<'PY'
 import base64, datetime as dt, json, pathlib, sys
 folder = pathlib.Path(sys.argv[1])
@@ -28,8 +29,8 @@ def book(author, mine, pictures):
         when = now - dt.timedelta(days=offset)
         day = when.date().isoformat()
         stamps.append(dict(id=day, day=day, posted=(when-epoch).total_seconds(), photo=f"{picture}.jpg", thumbnail=f"{picture}.jpg"))
-    return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps, portrait=None if mine else base64.b64encode((folder/"portrait.jpg").read_bytes()).decode())
-(folder/"books.json").write_text(json.dumps(dict(books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3])])))
+    return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps, portrait=base64.b64encode((folder/("owner.jpg" if mine else "portrait.jpg")).read_bytes()).decode() if mine or author=="Alex" else None)
+(folder/"books.json").write_text(json.dumps(dict(books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3]), book("Maya", False, [1]), book("Noah", False, [3])])))
 PY
 for tab in today postbox books; do
   SIMCTL_CHILD_LOCKET_CAPTURE_TAB="$tab" xcrun simctl launch --terminate-running-process "$device" com.jasonmiller.Locket

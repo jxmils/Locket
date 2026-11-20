@@ -24,14 +24,16 @@ struct Stamp: Codable, Identifiable, Equatable {
     let photo: String
     let thumbnail: String
 
-    var dateLabel: String {
+    var dateLabel: String { formattedDay("dd MMM yyyy") }
+    var monthLabel: String { formattedDay("MMMM yyyy") }
+    private func formattedDay(_ template: String) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .gmt
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: day) else { return day }
         formatter.locale = .current
-        formatter.setLocalizedDateFormatFromTemplate("dd MMM yyyy")
+        formatter.setLocalizedDateFormatFromTemplate(template)
         return formatter.string(from: date)
     }
 }
