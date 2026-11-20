@@ -1,0 +1,17 @@
+name: Build Locket
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test book rules
+        run: swiftc Shared/Book.swift Tests/main.swift -o "$RUNNER_TEMP/book-tests" && "$RUNNER_TEMP/book-tests"
+      - name: Build app and embedded widget
+        run: |
+          set -euo pipefail
+          xcodebuild -project Locket.xcodeproj -scheme Locket -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          test -x build/Build/Products/Debug-iphonesimulator/Locket.app/PlugIns/FriendsStamps.appex/FriendsStamps

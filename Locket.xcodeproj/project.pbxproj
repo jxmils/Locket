@@ -1,0 +1,524 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A12535AA41887C8DE45FFBB /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652E2E244668B9FD1F7F8C17 /* Storage.swift */; };
+		0EADBB716835C537F91C77D4 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A3AD1B2CC84C80F130ACC0 /* Book.swift */; };
+		112C0A654E443476C37579ED /* LocketApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B7BC0FC42800209C4D1673D /* LocketApp.swift */; };
+		1E144A4C400C2E5F29A77589 /* CloudBooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FDFB936C84EAE202D6BEF28 /* CloudBooks.swift */; };
+		338D72648F602DA5C50DAFAD /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDCFEFCB36C883FA531E275 /* Sharing.swift */; };
+		3818A04DF4C9F727A7199C3A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95552F8A4AB3F8303F4AB487 /* Foundation.framework */; };
+		3F354042690211CA95D91F77 /* StampArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F489D0C757A5EA1FBFC4A05C /* StampArt.swift */; };
+		63902B433C362D3FF8FDDFAE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2CEB83983FB075E4410C5F9 /* Assets.xcassets */; };
+		6E1F0C410C20A73DF7CAF6C6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95552F8A4AB3F8303F4AB487 /* Foundation.framework */; };
+		862F320EC11966ECEEAA6F9A /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652E2E244668B9FD1F7F8C17 /* Storage.swift */; };
+		9800C40F5E2F2EB9C8E56793 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88A3AD1B2CC84C80F130ACC0 /* Book.swift */; };
+		B330FF956443E851A7469A84 /* FriendsStamps.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B58F111887B4904BD3E9C9C4 /* FriendsStamps.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C488DDD7159F0AE3B771605B /* CloudBooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FDFB936C84EAE202D6BEF28 /* CloudBooks.swift */; };
+		CBDB1818BF6F5176FFF902F2 /* NextStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6BF11C09A4F5567879ECCB /* NextStamp.swift */; };
+		D646E53A27D3C50FF1F65EBF /* StampArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F489D0C757A5EA1FBFC4A05C /* StampArt.swift */; };
+		D8EE33C0ADDB000DE38756ED /* FriendsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9D1D2B5951B9B83EBD1416 /* FriendsWidget.swift */; };
+		F79DFC57A4253A1ADBF597E7 /* NextStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6BF11C09A4F5567879ECCB /* NextStamp.swift */; };
+		FB6818DFF3CEC536B7778245 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698C0C05044C47C1E17EB42C /* Home.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D7566BFFA63310046E101EFD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F8F1E711A2D37E1BA4E4B03A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6D40733F7435F4A632AA2E2B;
+			remoteInfo = FriendsStamps;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AE3E88D2052694426E938E1F /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B330FF956443E851A7469A84 /* FriendsStamps.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		10E1B3E4A8DC345E00F0F6AB /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B7BC0FC42800209C4D1673D /* LocketApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocketApp.swift; sourceTree = "<group>"; };
+		3D282E5FE324790628B4076A /* Widget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
+		3FDFB936C84EAE202D6BEF28 /* CloudBooks.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudBooks.swift; sourceTree = "<group>"; };
+		5FFBB0A094C40A49A6AC749F /* Locket.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Locket.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		652E2E244668B9FD1F7F8C17 /* Storage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+		698C0C05044C47C1E17EB42C /* Home.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
+		88A3AD1B2CC84C80F130ACC0 /* Book.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
+		95552F8A4AB3F8303F4AB487 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		9FDCFEFCB36C883FA531E275 /* Sharing.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
+		B58F111887B4904BD3E9C9C4 /* FriendsStamps.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FriendsStamps.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B7665E8D0C6DF18033270C69 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB9D1D2B5951B9B83EBD1416 /* FriendsWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FriendsWidget.swift; sourceTree = "<group>"; };
+		C2CEB83983FB075E4410C5F9 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F489D0C757A5EA1FBFC4A05C /* StampArt.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StampArt.swift; sourceTree = "<group>"; };
+		FE6BF11C09A4F5567879ECCB /* NextStamp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextStamp.swift; sourceTree = "<group>"; };
+		FF7198DE35F82B013449DA0A /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D30733DE3A2DA457C58F307 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6E1F0C410C20A73DF7CAF6C6 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69844314F09EA6CFDD8BA607 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3818A04DF4C9F727A7199C3A /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0E8753D7BC33830EEBD2EF6D /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				88A3AD1B2CC84C80F130ACC0 /* Book.swift */,
+				3FDFB936C84EAE202D6BEF28 /* CloudBooks.swift */,
+				FE6BF11C09A4F5567879ECCB /* NextStamp.swift */,
+				F489D0C757A5EA1FBFC4A05C /* StampArt.swift */,
+				652E2E244668B9FD1F7F8C17 /* Storage.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		30B4BE83AD1101802F0037C1 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				698C0C05044C47C1E17EB42C /* Home.swift */,
+				1B7BC0FC42800209C4D1673D /* LocketApp.swift */,
+				9FDCFEFCB36C883FA531E275 /* Sharing.swift */,
+				10E1B3E4A8DC345E00F0F6AB /* Info.plist */,
+				FF7198DE35F82B013449DA0A /* App.entitlements */,
+				C2CEB83983FB075E4410C5F9 /* Assets.xcassets */,
+			);
+			name = App;
+			path = App;
+			sourceTree = "<group>";
+		};
+		3745D961AA77AA549CE04199 /* Widget */ = {
+			isa = PBXGroup;
+			children = (
+				BB9D1D2B5951B9B83EBD1416 /* FriendsWidget.swift */,
+				B7665E8D0C6DF18033270C69 /* Info.plist */,
+				3D282E5FE324790628B4076A /* Widget.entitlements */,
+			);
+			name = Widget;
+			path = Widget;
+			sourceTree = "<group>";
+		};
+		72F8D2DF6B7E5C7148B61151 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				95552F8A4AB3F8303F4AB487 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		8AFD3666C5CDD2A80B35E780 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5FFBB0A094C40A49A6AC749F /* Locket.app */,
+				B58F111887B4904BD3E9C9C4 /* FriendsStamps.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		93B8DA68C63402347ABE6005 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				72F8D2DF6B7E5C7148B61151 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9BF7CFEA6672B0FC76033305 = {
+			isa = PBXGroup;
+			children = (
+				8AFD3666C5CDD2A80B35E780 /* Products */,
+				93B8DA68C63402347ABE6005 /* Frameworks */,
+				30B4BE83AD1101802F0037C1 /* App */,
+				3745D961AA77AA549CE04199 /* Widget */,
+				0E8753D7BC33830EEBD2EF6D /* Shared */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6D40733F7435F4A632AA2E2B /* FriendsStamps */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 71410DF253147B03EE17F369 /* Build configuration list for PBXNativeTarget "FriendsStamps" */;
+			buildPhases = (
+				A988507AAF93AC8CD97A8E57 /* Sources */,
+				4D30733DE3A2DA457C58F307 /* Frameworks */,
+				77C9580FCACC6B6615D84A7B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FriendsStamps;
+			productName = FriendsStamps;
+			productReference = B58F111887B4904BD3E9C9C4 /* FriendsStamps.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		EEC0E955769BA51712B0F540 /* Locket */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 189263176B7320739104E329 /* Build configuration list for PBXNativeTarget "Locket" */;
+			buildPhases = (
+				E58E4FAC83A72B50F9278BDA /* Sources */,
+				69844314F09EA6CFDD8BA607 /* Frameworks */,
+				5EA1537825A9D3AA8A199848 /* Resources */,
+				AE3E88D2052694426E938E1F /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4739F441A85FBA1F203ADC25 /* PBXTargetDependency */,
+			);
+			name = Locket;
+			productName = Locket;
+			productReference = 5FFBB0A094C40A49A6AC749F /* Locket.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F8F1E711A2D37E1BA4E4B03A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1240;
+				LastUpgradeCheck = 1240;
+			};
+			buildConfigurationList = 053F3296A037CD9BAB2AF085 /* Build configuration list for PBXProject "Locket" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9BF7CFEA6672B0FC76033305;
+			productRefGroup = 8AFD3666C5CDD2A80B35E780 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EEC0E955769BA51712B0F540 /* Locket */,
+				6D40733F7435F4A632AA2E2B /* FriendsStamps */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5EA1537825A9D3AA8A199848 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				63902B433C362D3FF8FDDFAE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77C9580FCACC6B6615D84A7B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A988507AAF93AC8CD97A8E57 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D8EE33C0ADDB000DE38756ED /* FriendsWidget.swift in Sources */,
+				0EADBB716835C537F91C77D4 /* Book.swift in Sources */,
+				C488DDD7159F0AE3B771605B /* CloudBooks.swift in Sources */,
+				F79DFC57A4253A1ADBF597E7 /* NextStamp.swift in Sources */,
+				3F354042690211CA95D91F77 /* StampArt.swift in Sources */,
+				862F320EC11966ECEEAA6F9A /* Storage.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E58E4FAC83A72B50F9278BDA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB6818DFF3CEC536B7778245 /* Home.swift in Sources */,
+				112C0A654E443476C37579ED /* LocketApp.swift in Sources */,
+				338D72648F602DA5C50DAFAD /* Sharing.swift in Sources */,
+				9800C40F5E2F2EB9C8E56793 /* Book.swift in Sources */,
+				1E144A4C400C2E5F29A77589 /* CloudBooks.swift in Sources */,
+				CBDB1818BF6F5176FFF902F2 /* NextStamp.swift in Sources */,
+				D646E53A27D3C50FF1F65EBF /* StampArt.swift in Sources */,
+				0A12535AA41887C8DE45FFBB /* Storage.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4739F441A85FBA1F203ADC25 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FriendsStamps;
+			target = 6D40733F7435F4A632AA2E2B /* FriendsStamps */;
+			targetProxy = D7566BFFA63310046E101EFD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		15CED2C0FD5B238DB8AA7A05 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		19189923C7002D7F4DA9D718 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KY3DU2D7QL;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jasonmiller.Locket;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4011B5C1EA67517A20B195F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KY3DU2D7QL;
+				INFOPLIST_FILE = Widget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jasonmiller.Locket.FriendsStamps;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		54266B5FE8A2FE5077FB7708 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B918CB9D7983D5952E9B5494 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KY3DU2D7QL;
+				INFOPLIST_FILE = Widget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jasonmiller.Locket.FriendsStamps;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E8B620682000DB44FED22B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KY3DU2D7QL;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jasonmiller.Locket;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		053F3296A037CD9BAB2AF085 /* Build configuration list for PBXProject "Locket" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				54266B5FE8A2FE5077FB7708 /* Debug */,
+				15CED2C0FD5B238DB8AA7A05 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		189263176B7320739104E329 /* Build configuration list for PBXNativeTarget "Locket" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				19189923C7002D7F4DA9D718 /* Release */,
+				E8B620682000DB44FED22B44 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		71410DF253147B03EE17F369 /* Build configuration list for PBXNativeTarget "FriendsStamps" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4011B5C1EA67517A20B195F9 /* Release */,
+				B918CB9D7983D5952E9B5494 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F8F1E711A2D37E1BA4E4B03A /* Project object */;
+}

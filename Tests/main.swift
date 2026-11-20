@@ -1,0 +1,21 @@
+import Foundation
+
+let book = Book(id: "me", author: "J", timeZone: "America/New_York", mine: true)
+let iso = ISO8601DateFormatter()
+func date(_ s: String) -> Date { iso.date(from: s)! }
+precondition(book.day(date("2026-03-08T04:59:59Z")) == "2026-03-07")
+precondition(book.day(date("2026-03-08T05:00:00Z")) == "2026-03-08")
+precondition(book.day(date("2026-03-09T04:00:00Z")) == "2026-03-09")
+let s = Stamp(id: "2026-11-20", day: "2026-11-20", posted: date("2026-11-20T12:30:00Z"), photo: "p", thumbnail: "t")
+let mine = Book(id: "me", author: "Me", timeZone: "UTC", mine: true, stamps: [s])
+let a = Book(id: "a", author: "A", timeZone: "UTC", mine: false, stamps: [s])
+let b = Book(id: "b", author: "B", timeZone: "UTC", mine: false, stamps: [s])
+let data = try JSONEncoder().encode(Shelf(account: "one", books: [b, mine, a]))
+let restored = try JSONDecoder().decode(Shelf.self, from: data)
+let ids = restored.mail.map(\.id)
+precondition(ids == ["a/2026-11-20", "b/2026-11-20"])
+precondition(Shelf.nextID(nil, in: ids) == ids[0])
+precondition(Shelf.nextID(ids[0], in: ids) == ids[1])
+precondition(Shelf.nextID(ids[1], in: ids) == ids[0])
+precondition(Shelf.nextID("removed", in: []) == nil)
+print("Passed postal dates, DST rollover, archive persistence, friend isolation and widget paging.")
