@@ -35,7 +35,7 @@ struct Home: View {
 
     private var tabs: some View {
         TabView(selection: $tab) {
-            Postbox().tabItem { Label("Postbox", image: "TabMail") }.tag(SectionTab.postbox)
+            Postbox { tab = .today }.tabItem { Label("Postbox", image: "TabMail") }.tag(SectionTab.postbox)
             Today(active: tab == .today).tabItem { Label("Today", image: "TabCamera") }.tag(SectionTab.today)
             Books().tabItem { Label("Stamp books", image: "TabAlbum") }.tag(SectionTab.books)
         }
@@ -280,6 +280,7 @@ struct OpenBook: View {
 }
 
 struct Postbox: View {
+    let openToday: () -> Void
     @EnvironmentObject private var library: Library
     @State private var selected: String?
     var body: some View {
@@ -290,22 +291,46 @@ struct Postbox: View {
                 Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased())
                     .font(.caption2.monospaced().weight(.semibold)).fixedSize()
             }
-            if !mail.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(alignment: .top, spacing: 16) {
-                        ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
-                            Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
-                                VStack(spacing: 5) {
-                                    BookPortrait(book: friend, size: 43).padding(3)
-                                        .overlay { Circle().strokeBorder((mail.first { $0.id == selected } ?? mail.first)?.book.id == friend.id ? Paper.red : .clear, lineWidth: 1.5) }
-                                    if (mail.first { $0.id == selected } ?? mail.first)?.book.id != friend.id {
-                                        Text(friend.author).font(.caption).lineLimit(1)
+            TimelineView(.periodic(from: .now, by: 15)) { time in
+                let canPost = library.shelf.own.map { book in
+                    let today = book.day(time.date)
+                    return !book.stamps.contains { $0.day == today }
+                } ?? true
+                if canPost || !mail.isEmpty {
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 16) {
+                            if canPost {
+                                Button(action: openToday) {
+                                    ZStack {
+                                        PerforatedPaper().fill(Paper.ink)
+                                        Rectangle().strokeBorder(Paper.stock.opacity(0.76), lineWidth: 0.8).padding(5)
+                                        Image(systemName: "plus").font(.system(size: 20, weight: .semibold))
+                                            .foregroundStyle(Paper.stock)
                                     }
+                                    .frame(width: 35, height: 40)
+                                    .rotationEffect(.degrees(-6))
+                                    .frame(width: 49, height: 49)
+                                    .contentShape(Rectangle())
                                 }
-                            }.buttonStyle(.plain).accessibilityLabel("Stamps from \(friend.author)")
-                        }
-                    }.padding(.vertical, 2)
-                }.scrollIndicators(.hidden)
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Make today’s stamp")
+                            }
+                            ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
+                                Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
+                                    VStack(spacing: 5) {
+                                        BookPortrait(book: friend, size: 43).padding(3)
+                                            .overlay { Circle().strokeBorder((mail.first { $0.id == selected } ?? mail.first)?.book.id == friend.id ? Paper.red : .clear, lineWidth: 1.5) }
+                                        if (mail.first { $0.id == selected } ?? mail.first)?.book.id != friend.id {
+                                            Text(friend.author).font(.caption).lineLimit(1)
+                                        }
+                                    }
+                                }.buttonStyle(.plain).accessibilityLabel("Stamps from \(friend.author)")
+                            }
+                        }.padding(.vertical, 2)
+                    }.scrollIndicators(.hidden)
+                }
+            }
+            if !mail.isEmpty {
                 StampPager(pages: mail, selected: $selected)
             } else {
                 ZStack {
