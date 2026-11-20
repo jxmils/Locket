@@ -6,9 +6,8 @@ private enum SectionTab: String, Hashable { case today, postbox, books }
 
 struct Home: View {
     @EnvironmentObject private var library: Library
-    @State private var tab: SectionTab = .today
+    @State private var tab: SectionTab = .postbox
     init() {
-        _tab = State(initialValue: Storage.read().mail.isEmpty ? .today : .postbox)
         #if DEBUG && targetEnvironment(simulator)
         if let tabName = Storage.captureTab, let selected = SectionTab(rawValue: tabName) {
             _tab = State(initialValue: selected)
@@ -18,8 +17,8 @@ struct Home: View {
 
     var body: some View {
         TabView(selection: $tab) {
+            Postbox { tab = .today }.tabItem { Label("Postbox", systemImage: "envelope") }.tag(SectionTab.postbox)
             Today().tabItem { Label("Today", systemImage: "camera") }.tag(SectionTab.today)
-            Postbox().tabItem { Label("Postbox", systemImage: "tray") }.tag(SectionTab.postbox)
             Books().tabItem { Label("Stamp books", systemImage: "books.vertical") }.tag(SectionTab.books)
         }
         .tint(Paper.ink)
@@ -34,9 +33,8 @@ struct Home: View {
 private struct Masthead: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("stampnote").font(.system(size: 32, weight: .black, design: .serif)).italic().tracking(-2)
+            Text("Stampnote").font(.system(size: 26, weight: .semibold, design: .serif)).tracking(-1.2)
             Spacer()
-            Image(systemName: "seal.fill").foregroundStyle(Paper.red).accessibilityHidden(true)
             Text(Date.now.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()).uppercased())
                 .font(.caption2.monospaced().weight(.bold))
         }
@@ -47,7 +45,7 @@ private struct Masthead: View {
 struct PageTitle: View {
     var title: String
     var body: some View {
-        Text(title).font(.system(.largeTitle, design: .default, weight: .heavy)).tracking(-1.7)
+        Text(title).font(.system(size: 43, weight: .regular, design: .serif)).tracking(-2)
             .frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
     }
 }
@@ -71,33 +69,38 @@ private struct PrintMount: View {
     var image: UIImage?
     var caption: String
     var body: some View {
-        VStack(spacing: 0) {
-            StampArt(image: image, ratio: 1.08)
+        ZStack {
+            Paper.board
+            Canvas { context, size in
+                let inset: CGFloat = 8
+                context.stroke(Path(CGRect(origin: .zero, size: size).insetBy(dx: inset, dy: inset)),
+                               with: .color(Paper.stock.opacity(0.4)), style: StrokeStyle(lineWidth: 0.7, dash: [2, 3]))
+            }.accessibilityHidden(true)
+            StampArt(image: image, ratio: 1.26, inscription: caption)
+                .shadow(color: .black.opacity(0.32), radius: 2, y: 3)
                 .rotationEffect(.degrees(-3))
-                .shadow(color: .black.opacity(0.22), radius: 3, y: 3)
-                .padding(.horizontal, 22).padding(.top, 24).padding(.bottom, 16)
-            HStack {
-                Image(systemName: "seal.fill")
-                Text(caption.uppercased()).font(.caption2.monospaced().weight(.bold))
-                Spacer()
-                Image(systemName: "water.waves").imageScale(.large)
-            }.foregroundStyle(Paper.plum).padding(.horizontal, 18).padding(.bottom, 12)
+                .padding(.horizontal, 30)
+            // A postal cancellation crosses the edge of the print onto its mount.
+            Canvas { context, size in
+                let origin = CGPoint(x: size.width * 0.83, y: size.height * 0.24)
+                let radius = size.width * 0.088
+                var mark = Path()
+                for scale in [1.0, 0.85] {
+                    let r = radius * scale
+                    mark.addEllipse(in: CGRect(x: origin.x-r, y: origin.y-r, width: 2*r, height: 2*r))
+                }
+                for row in -1...1 {
+                    let y = origin.y + CGFloat(row) * 6
+                    mark.move(to: CGPoint(x: origin.x - radius * 0.3, y: y))
+                    mark.addCurve(to: CGPoint(x: size.width + 1, y: y - 1),
+                                  control1: CGPoint(x: origin.x + radius * 0.5, y: y - 9),
+                                  control2: CGPoint(x: size.width - 10, y: y + 5))
+                }
+                context.stroke(mark, with: .color(Paper.ink.opacity(0.67)), lineWidth: 1.4)
+            }.allowsHitTesting(false).accessibilityHidden(true)
         }
-        .background {
-            ZStack {
-                Paper.lilac
-                Canvas { context, size in
-                    for index in 0..<12 {
-                        let x = size.width - CGFloat(index * 10)
-                        var line = Path()
-                        line.move(to: CGPoint(x: x + 70, y: 0))
-                        line.addLine(to: CGPoint(x: x - 80, y: size.height))
-                        context.stroke(line, with: .color(Paper.plum.opacity(0.09)), lineWidth: 1)
-                    }
-                }.accessibilityHidden(true)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .aspectRatio(1.03, contentMode: .fit)
+        .clipped()
     }
 }
 
@@ -115,8 +118,6 @@ struct Today: View {
     @State private var draft: Data?
     @State private var picker: PhotosPickerItem?
     @State private var camera = false
-    @State private var invite: Invitation?
-    @State private var inviting = false
 
     var body: some View {
         PaperPage {
@@ -134,7 +135,7 @@ struct Today: View {
                                     Text("Filed in your book").font(.subheadline).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Image(systemName: "checkmark.seal.fill").foregroundStyle(Paper.plum)
+                                Image(systemName: "checkmark.seal.fill").foregroundStyle(Paper.board)
                             }
                         } else {
                             PrintMount(image: draft.flatMap { UIImage(data: $0) }, caption: today)
@@ -156,12 +157,6 @@ struct Today: View {
                         }
                     }
                 }
-                Divider()
-                Button { Task { await share(book) } } label: {
-                    Label(inviting ? "Opening invitation…" : "Invite a friend", systemImage: "person.badge.plus")
-                }.buttonStyle(PrimaryButton()).disabled(inviting)
-                Text("Invited friends can see past and future stamps. They can invite you to their book too.")
-                    .font(.footnote).foregroundStyle(.secondary)
             } else {
                 PrintMount(image: nil, caption: "One photo a day").frame(maxWidth: 300).frame(maxWidth: .infinity)
                 Text("Whose stamp book is this?").font(.system(.title2, design: .serif))
@@ -183,9 +178,7 @@ struct Today: View {
             self.picker = nil
         }
         .sheet(isPresented: $camera) { Camera { data in camera = false; if let data { draft = data } } }
-        .sheet(item: $invite) { invitation in
-            Sharing(invitation: invitation, finished: { Task { await library.refresh() } }, failed: { library.message = $0 })
-        }
+
     }
 
     private func showCamera() async {
@@ -193,12 +186,7 @@ struct Today: View {
         else { library.message = "Allow camera access in Settings, or choose a photo from your library." }
     }
 
-    private func share(_ book: Book) async {
-        inviting = true
-        defer { inviting = false }
-        do { invite = Invitation(share: try await library.cloud.invitation(author: book.author), container: library.cloud.container) }
-        catch { library.message = error.localizedDescription }
-    }
+
 }
 
 private struct BookPortrait: View {
@@ -212,7 +200,7 @@ private struct BookPortrait: View {
                 let initials = book.author.split(whereSeparator: { $0.isWhitespace }).prefix(2).compactMap(\.first)
                 Text(String(initials).uppercased()).font(.system(.headline, design: .serif))
                     .foregroundStyle(Paper.ink).frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Paper.melon)
+                    .background(Paper.lining)
             }
         }
         .frame(width: size, height: size).clipShape(Circle())
@@ -231,24 +219,15 @@ private struct StampPager: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(pages) { item in
-                            ZStack(alignment: .bottomLeading) {
-                                StampArt(image: item.stamp.image(small: false), ratio: 0.94)
-                                HStack(spacing: 8) {
-                                    BookPortrait(book: item.book, size: 27)
-                                    Text(item.book.author).font(.subheadline.weight(.bold))
-                                }
-                                .padding(6).padding(.trailing, 7).background(.white, in: Capsule()).padding(22)
-                            }
-                            .frame(width: geometry.size.width - 8)
-                            .shadow(color: .black.opacity(0.15), radius: 2, y: 2)
-                            .frame(width: geometry.size.width)
+                            PrintMount(image: item.stamp.image(small: false), caption: item.stamp.dateLabel)
+                                .frame(width: geometry.size.width)
                             .id(item.id)
                         }
                     }.scrollTargetLayout()
                 }
                 .scrollIndicators(.hidden).scrollTargetBehavior(.paging).scrollPosition(id: $selected)
             }
-            .aspectRatio(0.94, contentMode: .fit)
+            .aspectRatio(1.03, contentMode: .fit)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
             .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
@@ -258,7 +237,8 @@ private struct StampPager: View {
                 selected = pages[max(0, min(pages.count - 1, position + step))].id
             }
             HStack {
-                Text(page.stamp.dateLabel).font(.subheadline.weight(.semibold))
+                BookPortrait(book: page.book, size: 36)
+                Text("From \(page.book.author)").font(.system(.title3, design: .serif)).italic()
                 Spacer()
                 if pages.count > 1 {
                     HStack(spacing: 6) {
@@ -299,32 +279,38 @@ private struct OpenBook: View {
 }
 
 struct Postbox: View {
+    let openToday: () -> Void
     @EnvironmentObject private var library: Library
     @State private var selected: String?
     var body: some View {
         let mail = library.shelf.mail
         PaperPage {
-            PageTitle(title: "Postbox")
-            if let page = mail.first(where: { $0.id == selected }) ?? mail.first {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 15) {
+            HStack(alignment: .center) {
+                PageTitle(title: "Postbox")
+                if library.shelf.friends.contains(where: { !$0.stamps.isEmpty }) {
+                    Menu {
                         ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
-                            Button {
-                                selected = mail.first { $0.book.id == friend.id }?.id
-                            } label: {
-                                VStack(spacing: 5) {
-                                    BookPortrait(book: friend).padding(3)
-                                        .overlay { Circle().stroke(friend.id == page.book.id ? Paper.red : Color.secondary.opacity(0.2), lineWidth: 2) }
-                                    Text(friend.author).font(.caption.weight(.semibold)).lineLimit(1)
-                                }
-                            }.buttonStyle(.plain)
+                            Button(friend.author) { selected = mail.first { $0.book.id == friend.id }?.id }
                         }
-                    }.padding(2)
-                }.scrollIndicators(.hidden)
+                    } label: {
+                        Label("Senders", systemImage: "person.2").font(.subheadline.weight(.medium))
+                            .fixedSize().padding(.vertical, 12)
+                    }
+                }
+            }
+            if !mail.isEmpty {
                 StampPager(pages: mail, selected: $selected)
             } else {
-                Text("Your friends’ stamps will arrive here.").font(.system(.title2, design: .serif))
-                Text("Ask a friend to invite you to their stamp book. Open their invitation on this iPhone to add it.").foregroundStyle(.secondary)
+                ZStack {
+                    Paper.board
+                    Image(systemName: "envelope.open").font(.system(size: 82, weight: .ultraLight))
+                        .foregroundStyle(Paper.stock).rotationEffect(.degrees(-6))
+                }.aspectRatio(1.6, contentMode: .fit).accessibilityHidden(true)
+                Text("No mail yet").font(.system(.title2, design: .serif))
+                Text("Open a friend’s stamp book invitation to see their photos here.").foregroundStyle(.secondary)
+                if library.shelf.own == nil {
+                    Button("Start my stamp book", action: openToday).buttonStyle(PrimaryButton())
+                }
             }
         }
     }
@@ -336,6 +322,8 @@ struct Books: View {
     @State private var detail: Shelf.Page?
     @State private var portraitChoice: PhotosPickerItem?
     @State private var choosingPortrait = false
+    @State private var invite: Invitation?
+    @State private var inviting = false
     var body: some View {
         let books = [library.shelf.own].compactMap { $0 } + library.shelf.friends
         let book = books.first { $0.id == selected } ?? books.first
@@ -355,6 +343,10 @@ struct Books: View {
                     Spacer()
                     if book.mine {
                         Menu {
+                            Button { Task { await share(book) } } label: {
+                                Label("Share stamp book", systemImage: "square.and.arrow.up")
+                            }
+                            Divider()
                             Button(book.portrait == nil ? "Add profile photo" : "Change profile photo") { choosingPortrait = true }
                             if book.portrait != nil {
                                 Button("Remove profile photo", role: .destructive) {
@@ -362,31 +354,25 @@ struct Books: View {
                                 }
                             }
                         } label: {
-                            Image(systemName: "camera").frame(width: 44, height: 44)
-                        }.accessibilityLabel("Edit profile photo").disabled(library.saving)
+                            Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                        }.accessibilityLabel("Book options").disabled(library.saving || inviting)
                     }
                 }
-                .padding(14).background(Paper.melon.opacity(0.6), in: RoundedRectangle(cornerRadius: 18))
+                .padding(.vertical, 8).overlay(alignment: .bottom) { Divider() }
                 if book.stamps.isEmpty { Text("The first stamp will go here.").foregroundStyle(.secondary) }
                 let months = Dictionary(grouping: book.stamps) { String($0.day.prefix(7)) }
                 ForEach(months.keys.sorted(by: >), id: \.self) { month in
                     let pages = months[month] ?? []
                     Text(pages.first?.monthLabel ?? month).font(.headline.bold())
-                    HStack(alignment: .top, spacing: 12) {
-                        ForEach(0..<2) { column in
-                            LazyVStack(spacing: 16) {
-                                ForEach(Array(pages.enumerated()).filter { $0.offset % 2 == column }, id: \.element.id) { index, stamp in
-                                    Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
-                                        VStack(alignment: .leading, spacing: 5) {
-                                            StampArt(image: stamp.image(), ratio: index % 4 == 0 || index % 4 == 3 ? 0.82 : 1.08)
-                                                .shadow(color: .black.opacity(0.17), radius: 1.8, y: 2)
-                                            Text(stamp.dateLabel).font(.caption.weight(.medium)).padding(.leading, 2)
-                                        }
-                                    }.buttonStyle(.plain)
-                                }
-                            }.frame(maxWidth: .infinity)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 18) {
+                        ForEach(pages) { stamp in
+                            Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
+                                StampArt(image: stamp.image(), ratio: 1.16, inscription: stamp.dateLabel)
+                                    .shadow(color: .black.opacity(0.24), radius: 1.3, y: 2)
+                            }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
                         }
                     }
+                    .padding(14).background(Paper.board)
                 }
             } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
         }
@@ -402,5 +388,15 @@ struct Books: View {
             if !Task.isCancelled { self.portraitChoice = nil }
         }
         .sheet(item: $detail) { page in OpenBook(page: page) }
+        .sheet(item: $invite) { invitation in
+            Sharing(invitation: invitation, finished: { Task { await library.refresh() } }, failed: { library.message = $0 })
+        }
+    }
+
+    private func share(_ book: Book) async {
+        inviting = true
+        defer { inviting = false }
+        do { invite = Invitation(share: try await library.cloud.invitation(author: book.author), container: library.cloud.container) }
+        catch { library.message = error.localizedDescription }
     }
 }

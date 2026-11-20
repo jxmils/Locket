@@ -5,9 +5,9 @@ An iPhone stamp book. Choose one photo for the day, keep it on a dated page, and
 ## Using Stampnote
 
 - **Today** — name your book, take a photo or choose one from Photos, preview the perforated paper frame, then save. Trying a different photo before saving is fine. Saving uses that day’s page.
-- **Postbox** — tap the photo or **Next stamp** to turn through stamps from friends, newest first.
+- **Postbox** — the app opens here. Swipe through stamps from friends, newest first.
 - **Stamp books** — browse your own book or choose a friend's, grouped by month. Tap a stamp to open it.
-- **Invitations** — choose **Invite to my stamp book**. Apple's sharing sheet grants invited people read-only access to the entire book, including future entries. A friend sends their own invitation to share back. Use the same sheet to manage access.
+- **Invitations** — open your own book and choose **Book options (•••) → Share stamp book**. Apple's sharing sheet grants invited people read-only access to the entire book, including future entries. A friend sends their own invitation to share back. Use the same sheet to manage access.
 - **Home Screen** — add the **Friends’ stamps** widget in small, medium or large. Tap the stamp to advance when there are multiple entries. With one entry, a tap opens the Postbox. WidgetKit schedules background updates.
 
 The book keeps the time zone in which it was created. Each day has one CloudKit record in the owner's private book zone. A create-only write prevents two devices from filling the same date twice. Saving needs iCloud and a connection. Previously downloaded books can be read offline. Photos are re-encoded before upload so the uploaded JPEG contains the image without the source file's GPS metadata. Full-size and widget-size copies use the shared app container.

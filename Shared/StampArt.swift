@@ -2,20 +2,19 @@ import SwiftUI
 import UIKit
 
 enum Paper {
-    static let page = Color(red: 0.982, green: 0.977, blue: 0.966)
-    static let plum = Color(red: 0.29, green: 0.18, blue: 0.35)
-    static let lilac = Color(red: 0.88, green: 0.84, blue: 0.98)
-    static let melon = Color(red: 1, green: 0.76, blue: 0.65)
-    static let stock = Color(red: 1, green: 0.985, blue: 0.94)
-    static let ink = Color(red: 0.13, green: 0.105, blue: 0.145)
-    static let red = Color(red: 0.72, green: 0.18, blue: 0.16)
+    static let page = Color(red: 0.968, green: 0.953, blue: 0.907)
+    static let board = Color(red: 0.115, green: 0.255, blue: 0.24)
+    static let lining = Color(red: 0.79, green: 0.81, blue: 0.69)
+    static let stock = Color(red: 1, green: 0.976, blue: 0.873)
+    static let ink = Color(red: 0.125, green: 0.19, blue: 0.168)
+    static let red = Color(red: 0.64, green: 0.21, blue: 0.105)
 }
 
 /// Perforations follow the four edges at the same physical pitch.
 struct PerforatedPaper: Shape {
     func path(in r: CGRect) -> Path {
         var path = Path()
-        let pitch = max(7, min(r.width, r.height) / 13)
+        let pitch = max(7, min(r.width, r.height) / 20)
         let corners = [CGPoint(x: r.minX,y: r.minY), CGPoint(x: r.maxX,y: r.minY),
                        CGPoint(x: r.maxX,y: r.maxY), CGPoint(x: r.minX,y: r.maxY)]
         path.move(to: corners[0])
@@ -45,23 +44,44 @@ struct PerforatedPaper: Shape {
 struct StampArt: View {
     var image: UIImage?
     var ratio: CGFloat = 1
+    var inscription: String?
     var body: some View {
         GeometryReader { geo in
-            let pad = min(geo.size.width, geo.size.height) * 0.043
+            let pad = min(geo.size.width, geo.size.height) * 0.067
             ZStack {
                 PerforatedPaper().fill(Paper.stock)
-                Group {
-                    if let image { Image(uiImage: image).resizable().scaledToFill() }
-                    else {
+                VStack(spacing: 0) {
+                    GeometryReader { space in
                         ZStack {
-                            Paper.lilac
-                            Image(systemName: "camera.aperture").font(.system(size: max(14, pad * 2.3), weight: .ultraLight))
-                                .foregroundStyle(Paper.ink)
+                            if let image {
+                                Image(uiImage: image).resizable().scaledToFill()
+                                    .saturation(0.74).contrast(1.05)
+                                    .colorMultiply(Color(red: 1, green: 0.976, blue: 0.907))
+                            } else {
+                                Paper.lining
+                                Image(systemName: "camera.aperture")
+                                    .font(.system(size: max(16, pad * 2), weight: .light))
+                                    .foregroundStyle(Paper.ink)
+                            }
                         }
+                        .frame(width: space.size.width, height: space.size.height)
+                        .clipped()
+                        .overlay { Rectangle().strokeBorder(Paper.ink.opacity(0.45), lineWidth: 0.7) }
+                    }
+                    if let inscription {
+                        HStack {
+                            Image(systemName: "envelope").accessibilityHidden(true)
+                            Spacer()
+                            Text(inscription.uppercased()).lineLimit(1).minimumScaleFactor(0.75)
+                        }
+                        .font(.system(size: max(9, pad * 0.59), weight: .bold, design: .monospaced))
+                        .tracking(1).foregroundStyle(Paper.ink)
+                        .padding(.top, pad * 0.45)
                     }
                 }
-                .frame(width: max(0, geo.size.width - 2 * pad), height: max(0, geo.size.height - 2 * pad))
-                .clipped()
+                .padding(pad * 0.27)
+                .overlay { Rectangle().strokeBorder(Paper.ink.opacity(0.65), lineWidth: 1) }
+                .padding(pad * 0.76)
             }
         }.aspectRatio(ratio, contentMode: .fit)
     }
