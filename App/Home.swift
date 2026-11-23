@@ -9,7 +9,7 @@ struct Home: View {
     @State private var tab: SectionTab = .postbox
     init() {
         #if DEBUG && targetEnvironment(simulator)
-        if ["press","pressDemo","proof","welcome"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .today) }
+        if ["press","zoom","pressDemo","proof","welcome"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .today) }
         if ["detail","pins","friend"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .books) }
         if let tabName = Storage.captureTab, let selected = SectionTab(rawValue: tabName) {
             _tab = State(initialValue: selected)

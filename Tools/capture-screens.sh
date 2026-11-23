@@ -74,10 +74,10 @@ for (actor, action, text) in [(2, "comment", "Is this the café by the station?"
 shelf["books"] = books
 try JSONSerialization.data(withJSONObject: shelf).write(to: url)
 SWIFT
-for tab in today postbox books press proof comments detail pins friend welcome empty widget-small widget-medium widget-large; do
+for tab in today postbox books press zoom proof comments detail pins friend welcome empty widget-small widget-medium widget-large; do
   sample=posted
   case "$tab" in
-    postbox|press|proof|comments) sample=unposted ;;
+    postbox|press|zoom|proof|comments) sample=unposted ;;
     books|friend) sample=album ;;
     welcome|empty) sample=empty ;;
   esac

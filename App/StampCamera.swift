@@ -13,14 +13,17 @@ private final class StampLens: NSObject, ObservableObject, AVCapturePhotoCapture
     private var pending: CheckedContinuation<Data, Error>?
     private var shotID: Int64?
 
-    func start(front: Bool) async throws {
-        try await withCheckedThrowingContinuation { (reply: CheckedContinuation<Void, Error>) in
+    func start(front: Bool) async throws -> (range: ClosedRange<CGFloat>, current: CGFloat) {
+        try await withCheckedThrowingContinuation { (reply: CheckedContinuation<(range: ClosedRange<CGFloat>, current: CGFloat), Error>) in
             queue.async {
                 do {
                     try self.configure(front: front)
                     if !self.session.isRunning { self.session.startRunning() }
                     guard self.session.isRunning else { throw LensIssue.unavailable }
-                    reply.resume()
+                    guard let device = self.input?.device else { throw LensIssue.unavailable }
+                    let lower = device.minAvailableVideoZoomFactor
+                    let upper = max(lower, min(4, device.maxAvailableVideoZoomFactor))
+                    reply.resume(returning: (lower...upper, min(upper, max(lower, device.videoZoomFactor))))
                 } catch { reply.resume(throwing: error) }
             }
         }
@@ -67,12 +70,32 @@ private final class StampLens: NSObject, ObservableObject, AVCapturePhotoCapture
         }
     }
 
-    func shoot() async throws -> Data {
+    private func applyZoom(_ value: CGFloat, to device: AVCaptureDevice) throws {
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+        device.videoZoomFactor = min(device.maxAvailableVideoZoomFactor, max(device.minAvailableVideoZoomFactor, value))
+    }
+
+    func setZoom(_ value: CGFloat, front: Bool) {
+        queue.async {
+            guard let device = self.input?.device,
+                  device.position == (front ? .front : .back),
+                  self.session.isRunning, self.pending == nil else { return }
+            try? self.applyZoom(value, to: device)
+        }
+    }
+
+    func shoot(zoom: CGFloat) async throws -> Data {
         try await withCheckedThrowingContinuation { reply in
             queue.async {
                 guard self.session.isRunning, self.pending == nil else {
                     reply.resume(throwing: LensIssue.interrupted); return
                 }
+                guard let device = self.input?.device else {
+                    reply.resume(throwing: LensIssue.unavailable); return
+                }
+                do { try self.applyZoom(zoom, to: device) }
+                catch { reply.resume(throwing: error); return }
                 let settings = AVCapturePhotoSettings()
                 self.shotID = settings.uniqueID
                 self.pending = reply
@@ -124,10 +147,10 @@ private enum StampCut {
     static let widthFraction: CGFloat = 0.91
 
     /// Match the portrait aspect-fill preview, then cut the photograph inside the paper guide.
-    static func expose(_ data: Data) throws -> (viewfinder: UIImage, print: Data) {
+    static func expose(_ data: Data, cropZoom: CGFloat = 1) throws -> (viewfinder: UIImage, print: Data) {
         let normalized = try Storage.bytes(data, limit: 2048)
         guard let raw = UIImage(data: normalized)?.cgImage else { throw LocketIssue.photo }
-        let width = min(CGFloat(raw.width), CGFloat(raw.height) / StampLayout.heightPerWidth)
+        let width = min(CGFloat(raw.width), CGFloat(raw.height) / StampLayout.heightPerWidth) / max(1, cropZoom)
         let height = width * StampLayout.heightPerWidth
         let viewport = CGRect(x: (CGFloat(raw.width) - width) / 2, y: (CGFloat(raw.height) - height) / 2,
                               width: width, height: height).integral
@@ -146,6 +169,47 @@ private enum StampCut {
 
 private enum PressPosition { case off, raised, down, lifting }
 
+private struct CameraZoomBar: View {
+    let range: ClosedRange<CGFloat>
+    let value: CGFloat
+    let onChange: (CGFloat) -> Void
+
+    private var label: String {
+        value.formatted(.number.precision(.fractionLength(0...1))) + "×"
+    }
+
+    var body: some View {
+        VStack(spacing: 7) {
+            Image(systemName: "plus").font(.caption2)
+            GeometryReader { area in
+                let travel = max(1, area.size.height - 14)
+                let fraction = (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+                ZStack {
+                    Capsule().fill(.white.opacity(0.36)).frame(width: 2).padding(.vertical, 7)
+                    Circle().fill(.white).frame(width: 14, height: 14)
+                        .position(x: area.size.width / 2, y: 7 + (1 - fraction) * travel)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0).onChanged { touch in
+                    let fraction = 1 - min(1, max(0, (touch.location.y - 7) / travel))
+                    onChange(range.lowerBound + fraction * (range.upperBound - range.lowerBound))
+                })
+            }
+            Image(systemName: "minus").font(.caption2)
+            Text(label).font(.caption2.weight(.semibold).monospacedDigit())
+        }
+        .frame(width: 44, height: 152)
+        .foregroundStyle(.white)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Camera zoom").accessibilityValue(label)
+        .accessibilityAdjustableAction { direction in
+            let step: CGFloat = direction == .increment ? 0.25 : -0.25
+            onChange(min(range.upperBound, max(range.lowerBound, value + step)))
+        }
+    }
+}
+
 struct StampCamera: View {
     let book: Book
     let active: Bool
@@ -154,6 +218,8 @@ struct StampCamera: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var lens = StampLens()
     @State private var front = false
+    @State private var zoom: CGFloat = 1
+    @State private var zoomRange: ClosedRange<CGFloat> = 1...1
     @State private var ready = false
     @State private var taking = false
     @State private var press: PressPosition = .off
@@ -174,7 +240,7 @@ struct StampCamera: View {
     }
     var body: some View {
         GeometryReader { geo in
-            let width = max(1, min(geo.size.width - 20, (geo.size.height - 170) / 1.105, 490))
+            let width = max(1, min(geo.size.width - 56, (geo.size.height - 170) / 1.105, 490))
             VStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Today’s stamp").font(.custom("Baskerville-Italic", size: 36, relativeTo: .title))
@@ -183,7 +249,17 @@ struct StampCamera: View {
                         .font(.caption2.monospaced().weight(.medium))
                 }.padding(.horizontal, 22).padding(.top, 12)
                 Spacer(minLength: 8)
-                cutViewfinder(width: width)
+                HStack(spacing: 0) {
+                    cutViewfinder(width: width)
+                    ZStack {
+                        if (ready || fixture != nil) && zoomRange.upperBound > zoomRange.lowerBound && lockedPhoto == nil && !taking {
+                            CameraZoomBar(range: zoomRange, value: zoom) { value in
+                                zoom = value
+                                if fixture == nil { lens.setZoom(value, front: front) }
+                            }
+                        }
+                    }.frame(width: 44)
+                }
                 Spacer(minLength: 8)
                 if lockedPhoto != nil && !taking {
                     HStack(spacing: 18) {
@@ -232,9 +308,11 @@ struct StampCamera: View {
         .task(id: "\(useLens)-\(front)") {
             guard useLens else { lens.stop(); ready = false; return }
             #if DEBUG && targetEnvironment(simulator)
-            if ["press","pressDemo","proof"].contains(Storage.captureTab ?? ""), let root = Storage.root {
+            if ["press","zoom","pressDemo","proof"].contains(Storage.captureTab ?? ""), let root = Storage.root {
                 fixture = try? Data(contentsOf: root.appendingPathComponent("1.jpg"))
-                if Storage.captureTab != "press" {
+                zoomRange = 1...4
+                zoom = Storage.captureTab == "zoom" ? 2 : 1
+                if ["proof", "pressDemo"].contains(Storage.captureTab ?? "") {
                     do {
                         if Storage.captureTab == "pressDemo" {
                             let cue = root.appendingPathComponent("record-shutter")
@@ -258,8 +336,12 @@ struct StampCamera: View {
             accessDenied = !authorized
             guard authorized else { problem = "Allow camera access, or choose a photo below."; return }
             do {
-                try await lens.start(front: front)
-                if !Task.isCancelled { ready = true }
+                let settings = try await lens.start(front: front)
+                if !Task.isCancelled {
+                    zoom = settings.current
+                    zoomRange = settings.range
+                    ready = true
+                }
             } catch {
                 if !Task.isCancelled { problem = "Camera unavailable. You can choose a photo below." }
             }
@@ -282,7 +364,7 @@ struct StampCamera: View {
 
     @ViewBuilder private var liveSurface: some View {
         if let fixture, let img = UIImage(data: fixture) {
-            Image(uiImage: img).resizable().scaledToFill()
+            Image(uiImage: img).resizable().scaledToFill().scaleEffect(zoom)
         } else {
             ZStack {
                 dark
@@ -357,19 +439,20 @@ struct StampCamera: View {
         guard !taking, lockedPhoto == nil, ready || fixture != nil else { return }
         taking = true
         let ticket = run
+        let captureZoom = zoom
         Task { @MainActor in
             do {
                 let data: Data
-                if let fixture { data = fixture } else { data = try await lens.shoot() }
-                try await finish(data, ticket: ticket)
+                if let fixture { data = fixture } else { data = try await lens.shoot(zoom: captureZoom) }
+                try await finish(data, ticket: ticket, cropZoom: fixture == nil ? 1 : captureZoom)
             } catch {
                 if ticket == run { taking = false; library.message = "Couldn’t take that photo. Try again." }
             }
         }
     }
 
-    @MainActor private func finish(_ bytes: Data, ticket: UUID) async throws {
-        let shot = try await Task.detached { try StampCut.expose(bytes) }.value
+    @MainActor private func finish(_ bytes: Data, ticket: UUID, cropZoom: CGFloat = 1) async throws {
+        let shot = try await Task.detached { try StampCut.expose(bytes, cropZoom: cropZoom) }.value
         guard ticket == run, !Task.isCancelled else { return }
         exposure = shot.viewfinder
         lockedPhoto = shot.print
