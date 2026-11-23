@@ -29,3 +29,15 @@ precondition(mixed.postbox(on: late).map(\.book.id) == ["west"])
 precondition(mixed.postbox(on: date("2026-11-21T05:00:00Z")).isEmpty)
 precondition(mixed.mail.count == 2)
 print("Passed daily Postbox checks for empty books, older posts, author-local midnight, and archive access.")
+
+var mondayCalendar = Calendar(identifier: .gregorian)
+mondayCalendar.firstWeekday = 2
+let leap = StampMonth(key: "2024-02", calendar: mondayCalendar)!
+precondition(leap.days.firstIndex(of: 1) == 3 && leap.days.last == 29)
+var sundayCalendar = mondayCalendar
+sundayCalendar.firstWeekday = 1
+precondition(StampMonth(key: "2026-11", calendar: sundayCalendar)?.days.firstIndex(of: 1) == 0)
+precondition(StampMonth(key: "2026-11", calendar: mondayCalendar)?.days.firstIndex(of: 1) == 6)
+precondition(StampMonth(key: "2025-02")?.days.compactMap { $0 }.count == 28)
+precondition(StampMonth(key: "2026-13") == nil)
+print("Passed stamp book calendar month lengths, leap day and weekday alignment.")

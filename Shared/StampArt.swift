@@ -9,7 +9,6 @@ enum Paper {
     static let ink = Color(red: 0.16, green: 0.15, blue: 0.16)
     static let red = Color(red: 0.52, green: 0.205, blue: 0.235)
     static let rule = ink.opacity(0.26)
-    static let album = Color(red: 0.88, green: 0.88, blue: 0.85)
 }
 
 /// Perforations follow the four edges at the same physical pitch.

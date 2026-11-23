@@ -10,7 +10,7 @@ struct Home: View {
     init() {
         #if DEBUG && targetEnvironment(simulator)
         if ["press","zoom","pressDemo","proof","welcome"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .today) }
-        if ["detail","pins","friend"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .books) }
+        if ["detail","pins","friend","calendar"].contains(Storage.captureTab ?? "") { _tab = State(initialValue: .books) }
         if let tabName = Storage.captureTab, let selected = SectionTab(rawValue: tabName) {
             _tab = State(initialValue: selected)
         }
@@ -269,7 +269,7 @@ private struct StampPager: View {
         if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
             if !inPostbox {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("From \(page.book.author)").font(.custom("Baskerville-Italic", size: 26, relativeTo: .title2))
+                    Text(page.stamp.dateLabel).font(.headline)
                     Spacer()
                     if pages.count > 1 {
                         Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
@@ -314,17 +314,28 @@ struct OpenBook: View {
     }
 
     var body: some View {
-        PaperPage {
-            HStack {
-                PageTitle(title: library.shelf.books.first { $0.id == bookID }?.author ?? "Stamp book")
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark").frame(width: 44, height: 44)
-                }.accessibilityLabel("Close book")
+        let book = library.shelf.books.first { $0.id == bookID }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    if let book {
+                        BookPortrait(book: book, size: 38)
+                        Text(book.author).font(.headline)
+                    }
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark").frame(width: 44, height: 44)
+                    }.accessibilityLabel("Close book")
+                }
+                if let book {
+                    StampPager(pages: book.stamps.sorted { $0.day > $1.day }.map { Shelf.Page(book: book, stamp: $0) }, selected: $selected)
+                }
             }
-            if let book = library.shelf.books.first(where: { $0.id == bookID }) {
-                StampPager(pages: book.stamps.map { Shelf.Page(book: book, stamp: $0) }, selected: $selected)
-            }
+            .padding(20).frame(maxWidth: 560).frame(maxWidth: .infinity)
         }
+        .refreshable { await library.refresh() }
+        .background(Paper.page.ignoresSafeArea())
+        .foregroundStyle(Paper.ink)
         .presentationDragIndicator(.visible)
     }
 }
@@ -404,9 +415,71 @@ struct Postbox: View {
     }
 }
 
+private enum BookLayout: String, CaseIterable {
+    case stamps = "Stamps", calendar = "Calendar"
+    var icon: String { self == .stamps ? "square.grid.2x2" : "calendar" }
+}
+
+private struct BookMonthView: View {
+    let key: String
+    let stamps: [Stamp]
+    let layout: BookLayout
+    let open: (Stamp) -> Void
+
+    @ViewBuilder var body: some View {
+        if layout == .calendar, let month = StampMonth(key: key) {
+            let byDay = Dictionary(stamps.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)
+            LazyVGrid(columns: columns, spacing: 5) {
+                ForEach(month.weekdays.indices, id: \.self) { index in
+                    Text(month.weekdays[index]).font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary).padding(.bottom, 5)
+                }
+                ForEach(month.days.indices, id: \.self) { index in
+                    if let day = month.days[index] {
+                        if let stamp = byDay[String(format: "%@-%02d", key, day)] {
+                            Button { open(stamp) } label: {
+                                ZStack(alignment: .bottomTrailing) {
+                                    Color.clear.aspectRatio(1, contentMode: .fit).overlay {
+                                        if let picture = stamp.image() {
+                                            Image(uiImage: picture).resizable().scaledToFill().clipped()
+                                        }
+                                    }
+                                    .clipShape(Rectangle()).padding(3)
+                                    .background(Paper.stock).clipShape(PerforatedPaper())
+                                    Text(String(day)).font(.caption2.bold().monospacedDigit())
+                                        .padding(.horizontal, 3).background(Paper.stock, in: RoundedRectangle(cornerRadius: 2))
+                                }
+                                .frame(maxWidth: 55).frame(maxWidth: .infinity, minHeight: 44)
+                            }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                        } else {
+                            Text(String(day)).font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                    } else { Color.clear.frame(height: 44).accessibilityHidden(true) }
+                }
+            }
+        } else {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 136), spacing: 14)], alignment: .leading, spacing: 19) {
+                ForEach(stamps) { stamp in
+                    Button { open(stamp) } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            StampArt(image: stamp.image(), inscription: stamp.dateLabel)
+                                .shadow(color: Paper.ink.opacity(0.12), radius: 2, y: 1)
+                            Text(stamp.weekdayLabel).font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary).padding(.leading, 2)
+                        }
+                    }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                }
+            }
+        }
+    }
+}
+
 struct Books: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
+    @State private var layout: BookLayout = .stamps
     @State private var monthChoice: String?
     @State private var detail: Shelf.Page?
     @State private var portraitChoice: PhotosPickerItem?
@@ -416,104 +489,113 @@ struct Books: View {
     var body: some View {
         let books = [library.shelf.own].compactMap { $0 } + library.shelf.friends
         let book = books.first { $0.id == selected } ?? books.first
-        PaperPage {
-            PageTitle(title: "Stamp books")
-            AirmailEdge()
-            if let book {
-                HStack(spacing: 12) {
-                    BookPortrait(book: book, size: 52)
-                    Menu {
-                        ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id; monthChoice = nil } }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack { Text(book.author).font(.custom("Baskerville-SemiBold", size: 23, relativeTo: .title3)); Image(systemName: "chevron.down").font(.caption2) }
-                            Text("\(book.stamps.count) \(book.stamps.count == 1 ? "stamp" : "stamps")").font(.caption)
-                        }
-                    }
-                    Spacer()
-                    if book.mine {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Stamp books").font(.largeTitle.bold()).tracking(-1.3).accessibilityAddTraits(.isHeader)
+                if let book {
+                    HStack(spacing: 12) {
                         Menu {
-                            Button { Task { await share(book) } } label: {
-                                Label("Share stamp book", systemImage: "square.and.arrow.up")
-                            }
-                            Divider()
-                            Button(book.portrait == nil ? "Add profile photo" : "Change profile photo") { choosingPortrait = true }
-                            if book.portrait != nil {
-                                Button("Remove profile photo", role: .destructive) {
-                                    Task { await library.setPortrait(nil, for: book) }
-                                }
-                            }
+                            ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id; monthChoice = nil } }
                         } label: {
-                            Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
-                        }.accessibilityLabel("Book options").disabled(library.saving || inviting)
-                    }
-                }
-                .padding(.vertical, 8).overlay(alignment: .bottom) { Divider() }
-                TimelineView(.periodic(from: .now, by: 30)) { time in
-                    let pins = library.shelf.pins(in: book, on: time.date)
-                    if !pins.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Pinned today", systemImage: "pin.fill").font(.headline)
-                            ScrollView(.horizontal) {
-                                HStack(spacing: 12) {
-                                    ForEach(pins) { page in
-                                        Button { detail = page } label: {
-                                            VStack(alignment: .leading) {
-                                                StampArt(image: page.stamp.image(), inscription: page.stamp.dateLabel).frame(width: 112)
-                                                Text(page.book.author).font(.caption)
-                                            }
-                                        }.buttonStyle(.plain)
+                            HStack(spacing: 11) {
+                                BookPortrait(book: book, size: 45)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 6) {
+                                        Text(book.author).font(.headline)
+                                        Image(systemName: "chevron.down").font(.caption2)
+                                    }
+                                    Text("\(book.stamps.count) \(book.stamps.count == 1 ? "stamp" : "stamps")")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        Spacer()
+                        if book.mine {
+                            Menu {
+                                Button { Task { await share(book) } } label: {
+                                    Label("Share stamp book", systemImage: "square.and.arrow.up")
+                                }
+                                Divider()
+                                Button(book.portrait == nil ? "Add profile photo" : "Change profile photo") { choosingPortrait = true }
+                                if book.portrait != nil {
+                                    Button("Remove profile photo", role: .destructive) {
+                                        Task { await library.setPortrait(nil, for: book) }
                                     }
                                 }
-                            }.scrollIndicators(.hidden)
+                            } label: {
+                                Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                            }.accessibilityLabel("Book options").disabled(library.saving || inviting)
                         }
                     }
-                }
-                if book.stamps.isEmpty { Text("The first stamp will go here.").foregroundStyle(.secondary) }
-                let months = Dictionary(grouping: book.stamps) { String($0.day.prefix(7)) }
-                let monthsInOrder = months.keys.sorted(by: >)
-                if let month = monthChoice.flatMap({ months[$0] == nil ? nil : $0 }) ?? monthsInOrder.first,
-                   let pages = months[month] {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            if monthsInOrder.count > 1 {
-                                Menu {
-                                    ForEach(monthsInOrder, id: \.self) { key in
-                                        Button(months[key]?.first?.monthLabel ?? key) { monthChoice = key }
+                    .padding(.bottom, 13).overlay(alignment: .bottom) { Divider() }
+                    TimelineView(.periodic(from: .now, by: 30)) { time in
+                        let pins = library.shelf.pins(in: book, on: time.date)
+                        if !pins.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Pinned today", systemImage: "pin.fill").font(.headline)
+                                ScrollView(.horizontal) {
+                                    HStack(spacing: 12) {
+                                        ForEach(pins) { page in
+                                            Button { detail = page } label: {
+                                                VStack(alignment: .leading) {
+                                                    StampArt(image: page.stamp.image(), inscription: page.stamp.dateLabel).frame(width: 112)
+                                                    Text(page.book.author).font(.caption)
+                                                }
+                                            }.buttonStyle(.plain)
+                                        }
                                     }
-                                } label: {
-                                    Label(pages.first?.monthLabel ?? month, systemImage: "calendar")
-                                    Image(systemName: "chevron.down").font(.caption2)
-                                }
-                            } else { Text(pages.first?.monthLabel ?? month) }
-                            Spacer()
-                            Text("\((monthsInOrder.firstIndex(of: month) ?? 0) + 1) / \(monthsInOrder.count)")
-                                .font(.caption2.monospacedDigit())
-                        }.font(.custom("Baskerville-SemiBold", size: 20, relativeTo: .headline))
-                        Divider()
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 17) {
-                            ForEach(pages) { stamp in
-                                Button { detail = Shelf.Page(book: book, stamp: stamp) } label: {
-                                    StampArt(image: stamp.image(), inscription: stamp.dateLabel)
-                                        .shadow(color: Paper.ink.opacity(0.22), radius: 1.5, y: 2)
-                                }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                                }.scrollIndicators(.hidden)
                             }
                         }
                     }
-                    .padding(.vertical, 17).padding(.trailing, 13).padding(.leading, 23)
-                    .background {
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4).fill(Paper.album)
-                            RoundedRectangle(cornerRadius: 3).strokeBorder(Paper.rule, lineWidth: 0.6).padding(4)
-                            Rectangle().fill(Paper.board).frame(width: 9)
-                            Rectangle().fill(Paper.stock.opacity(0.48)).frame(width: 1).padding(.leading, 5)
+                    if book.stamps.isEmpty { Text("The first stamp will go here.").foregroundStyle(.secondary) }
+                    let months = Dictionary(grouping: book.stamps) { String($0.day.prefix(7)) }
+                    let monthsInOrder = months.keys.sorted(by: >)
+                    if let month = monthChoice.flatMap({ months[$0] == nil ? nil : $0 }) ?? monthsInOrder.first,
+                       let pages = months[month] {
+                        HStack {
+                            Menu {
+                                ForEach(monthsInOrder, id: \.self) { key in
+                                    Button { monthChoice = key } label: {
+                                        if key == month { Label(months[key]?.first?.monthLabel ?? key, systemImage: "checkmark") }
+                                        else { Text(months[key]?.first?.monthLabel ?? key) }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(pages.first?.monthLabel ?? month).font(.headline)
+                                    if monthsInOrder.count > 1 { Image(systemName: "chevron.down").font(.caption2) }
+                                }.frame(minHeight: 44)
+                            }.disabled(monthsInOrder.count == 1)
+                            Spacer(minLength: 6)
+                            HStack(spacing: 0) {
+                                ForEach(BookLayout.allCases, id: \.self) { option in
+                                    Button { layout = option } label: {
+                                        Image(systemName: option.icon).font(.subheadline.weight(.medium))
+                                            .frame(width: 44, height: 32)
+                                            .foregroundStyle(layout == option ? Paper.ink : .secondary)
+                                            .background { if layout == option { Capsule().fill(Paper.stock) } }
+                                            .frame(height: 44).contentShape(Rectangle())
+                                    }.accessibilityLabel(option.rawValue)
+                                        .accessibilityAddTraits(layout == option ? .isSelected : [])
+                                }
+                            }
+                            .background { Capsule().fill(Paper.ink.opacity(0.06)).frame(height: 36) }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .shadow(color: Paper.ink.opacity(0.15), radius: 2, y: 2)
+                        BookMonthView(key: month, stamps: pages.sorted { $0.day > $1.day }, layout: layout) {
+                            detail = Shelf.Page(book: book, stamp: $0)
+                        }
                     }
-                }
-            } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
+                } else { Text("Start your first book on the Today tab.").foregroundStyle(.secondary) }
+            }
+            .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
+            .frame(maxWidth: 560).frame(maxWidth: .infinity)
         }
+        .refreshable { await library.refresh() }
+        .background(Paper.page.ignoresSafeArea())
+        .foregroundStyle(Paper.ink)
+        .toolbarBackground(Paper.page, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .photosPicker(isPresented: $choosingPortrait, selection: $portraitChoice, matching: .images)
         .task(id: portraitChoice) {
             guard let portraitChoice, let owner = library.shelf.own else { return }
@@ -527,6 +609,7 @@ struct Books: View {
         }
         #if DEBUG && targetEnvironment(simulator)
         .task {
+            if Storage.captureTab == "calendar" { layout = .calendar }
             if Storage.captureTab == "friend" { selected = library.shelf.friends.first?.id }
             if Storage.captureTab == "detail", let book = library.shelf.own, let stamp = book.stamps.first {
                 detail = Shelf.Page(book: book, stamp: stamp)

@@ -31,6 +31,7 @@ struct Stamp: Codable, Identifiable, Equatable {
     let thumbnail: String
 
     var dateLabel: String { formattedDay("dd MMM yyyy") }
+    var weekdayLabel: String { formattedDay("EEE d") }
     var monthLabel: String { formattedDay("MMMM yyyy") }
     private func formattedDay(_ template: String) -> String {
         let formatter = DateFormatter()
@@ -41,6 +42,27 @@ struct Stamp: Codable, Identifiable, Equatable {
         formatter.locale = .current
         formatter.setLocalizedDateFormatFromTemplate(template)
         return formatter.string(from: date)
+    }
+}
+
+/// Calendar slots use the civil dates printed on the stamps, even when the reader travels.
+struct StampMonth {
+    let weekdays: [String]
+    let days: [Int?]
+
+    init?(key: String, calendar source: Calendar = .current) {
+        let parts = key.split(separator: "-")
+        guard parts.count == 2, let year = Int(parts[0]), let month = Int(parts[1]), (1...12).contains(month) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = source.locale ?? .current
+        calendar.timeZone = .gmt
+        calendar.firstWeekday = source.firstWeekday
+        guard let first = calendar.date(from: DateComponents(year: year, month: month, day: 1)),
+              let range = calendar.range(of: .day, in: .month, for: first) else { return nil }
+        let offset = (calendar.component(.weekday, from: first) - calendar.firstWeekday + 7) % 7
+        let names = calendar.shortStandaloneWeekdaySymbols
+        weekdays = (0..<7).map { names[(calendar.firstWeekday - 1 + $0) % 7] }
+        days = Array(repeating: nil, count: offset) + range.map { Optional($0) }
     }
 }
 
