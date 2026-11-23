@@ -175,7 +175,7 @@ private struct CameraZoomBar: View {
     let onChange: (CGFloat) -> Void
 
     private var label: String {
-        value.formatted(.number.precision(.fractionLength(0...1))) + "×"
+        Double(value).formatted(.number.precision(.fractionLength(0...1))) + "×"
     }
 
     var body: some View {
