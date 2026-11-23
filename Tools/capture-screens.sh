@@ -41,7 +41,11 @@ last_month=now.replace(day=1)-dt.timedelta(days=1)
 older.update(day=last_month.date().isoformat(),id=last_month.date().isoformat(),posted=(last_month-epoch).total_seconds())
 books[0]["stamps"].append(older)
 target=hashlib.sha256((books[1]["mailbox"]+"/"+books[1]["stamps"][0]["id"]).encode()).hexdigest()
-(folder/"album.json").write_text(json.dumps(dict(books=books)))
+# Give the archive enough stamps to exercise the four-stamp page boundary.
+album_owner = dict(books[0])
+history = book("Jason", True, [0,1,2,3,1,2])["stamps"]
+album_owner["stamps"] = list({s["day"]: s for s in books[0]["stamps"] + history}.values())
+(folder/"album.json").write_text(json.dumps(dict(books=[album_owner] + books[1:])))
 books[0]["activities"]=[dict(id="pin-demo",target=target,kind="pin",day=now.date().isoformat(),created=(now-epoch).total_seconds())]
 (folder/"empty.json").write_text(json.dumps(dict(books=[])))
 (folder/"posted.json").write_text(json.dumps(dict(books=books)))

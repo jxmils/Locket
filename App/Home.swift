@@ -420,6 +420,129 @@ private enum BookLayout: String, CaseIterable {
     var icon: String { self == .stamps ? "square.grid.2x2" : "calendar" }
 }
 
+/// A pair of translucent photo corners holds the stamp on the album leaf.
+private struct StampMount: View {
+    let stamp: Stamp?
+    let open: (Stamp) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            if let stamp {
+                Button { open(stamp) } label: {
+                    StampArt(image: stamp.image(), inscription: stamp.dateLabel)
+                        .shadow(color: Paper.ink.opacity(0.15), radius: 1.4, y: 1)
+                        .padding(3)
+                        .overlay {
+                            Canvas { context, size in
+                                let side = min(13, size.width * 0.10)
+                                var corners = Path()
+                                corners.move(to: .zero)
+                                corners.addLine(to: CGPoint(x: side, y: 0))
+                                corners.addLine(to: CGPoint(x: 0, y: side))
+                                corners.closeSubpath()
+                                corners.move(to: CGPoint(x: size.width, y: size.height))
+                                corners.addLine(to: CGPoint(x: size.width - side, y: size.height))
+                                corners.addLine(to: CGPoint(x: size.width, y: size.height - side))
+                                corners.closeSubpath()
+                                context.fill(corners, with: .color(.white.opacity(0.80)))
+                                context.stroke(corners, with: .color(Paper.ink.opacity(0.21)), lineWidth: 0.55)
+                            }.allowsHitTesting(false)
+                        }
+                }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
+                Text(stamp.weekdayLabel).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                    .padding(.leading, 3).accessibilityHidden(true)
+            } else {
+                Color.clear.aspectRatio(1 / StampLayout.heightPerWidth, contentMode: .fit)
+                    .padding(3).accessibilityHidden(true)
+            }
+        }
+    }
+}
+
+private struct AlbumLeaf: View {
+    let stamps: ArraySlice<Stamp>
+    let open: (Stamp) -> Void
+
+    var body: some View {
+        Grid(alignment: .topLeading, horizontalSpacing: 15, verticalSpacing: 15) {
+            ForEach(0..<2) { row in
+                GridRow {
+                    ForEach(0..<2) { column in
+                        let index = stamps.startIndex + row * 2 + column
+                        StampMount(stamp: index < stamps.endIndex ? stamps[index] : nil, open: open)
+                    }
+                }
+            }
+        }
+        .padding(.leading, 26).padding(.trailing, 16).padding(.top, 17)
+    }
+}
+
+private struct AlbumPages: View {
+    let stamps: [Stamp]
+    let open: (Stamp) -> Void
+    @State private var page = 0
+    private var count: Int { (stamps.count + 3) / 4 }
+
+    var body: some View {
+        if count > 0 {
+            let current = min(page, count - 1)
+            let selection = Binding(get: { min(page, count - 1) }, set: { page = $0 })
+            VStack(spacing: 2) {
+                // Size the native pager from a full leaf so captions can grow with Dynamic Type.
+                if count == 1 {
+                    AlbumLeaf(stamps: stamps[...], open: open)
+                } else {
+                    AlbumLeaf(stamps: stamps.prefix(4), open: open)
+                        .hidden().accessibilityHidden(true)
+                        .overlay {
+                            TabView(selection: selection) {
+                                ForEach(0..<count, id: \.self) { index in
+                                    AlbumLeaf(stamps: stamps[(index * 4)..<min(stamps.count, index * 4 + 4)], open: open)
+                                        .frame(maxHeight: .infinity, alignment: .top)
+                                        .tag(index)
+                                }
+                            }.tabViewStyle(.page(indexDisplayMode: .never))
+                        }
+                }
+                HStack {
+                    if count > 1 {
+                        Button { withAnimation { page = current - 1 } } label: {
+                            Image(systemName: "chevron.left").frame(width: 44, height: 44)
+                        }.disabled(current == 0).accessibilityLabel("Previous page")
+                    }
+                    Spacer()
+                    Text("Page \(current + 1) of \(count)").font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if count > 1 {
+                        Button { withAnimation { page = current + 1 } } label: {
+                            Image(systemName: "chevron.right").frame(width: 44, height: 44)
+                        }.disabled(current + 1 == count).accessibilityLabel("Next page")
+                    }
+                }
+                .padding(.leading, 20).padding(.trailing, 10).frame(minHeight: 39)
+            }
+            .background(alignment: .leading) {
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(Paper.stock)
+                    LinearGradient(colors: [Paper.ink.opacity(0.12), Paper.ink.opacity(0.035), .clear],
+                                   startPoint: .leading, endPoint: .trailing).frame(width: 16)
+                    Rectangle().fill(Paper.rule).frame(width: 0.5).padding(.leading, 10)
+                }.clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+            .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(Paper.ink.opacity(0.13), lineWidth: 0.6) }
+            .background {
+                RoundedRectangle(cornerRadius: 3).fill(Paper.stock)
+                    .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(Paper.ink.opacity(0.15), lineWidth: 0.7) }
+                    .offset(x: 2, y: 3)
+            }
+            .shadow(color: Paper.ink.opacity(0.09), radius: 2, y: 2)
+            .onChange(of: count) { _, total in page = min(page, max(0, total - 1)) }
+        }
+    }
+}
+
 private struct BookMonthView: View {
     let key: String
     let stamps: [Stamp]
@@ -460,18 +583,7 @@ private struct BookMonthView: View {
                 }
             }
         } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 136), spacing: 14)], alignment: .leading, spacing: 19) {
-                ForEach(stamps) { stamp in
-                    Button { open(stamp) } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            StampArt(image: stamp.image(), inscription: stamp.dateLabel)
-                                .shadow(color: Paper.ink.opacity(0.12), radius: 2, y: 1)
-                            Text(stamp.weekdayLabel).font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary).padding(.leading, 2)
-                        }
-                    }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
-                }
-            }
+            AlbumPages(stamps: stamps, open: open).id(key)
         }
     }
 }
@@ -584,7 +696,7 @@ struct Books: View {
                         }
                         BookMonthView(key: month, stamps: pages.sorted { $0.day > $1.day }, layout: layout) {
                             detail = Shelf.Page(book: book, stamp: $0)
-                        }
+                        }.id(book.id)
                     }
                 } else { Text("Start your first book on the Today tab.").foregroundStyle(.secondary) }
             }
