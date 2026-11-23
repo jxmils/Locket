@@ -31,6 +31,8 @@ def book(author, mine, pictures):
         stamps.append(dict(id=day, day=day, posted=(when-epoch).total_seconds(), photo=f"{picture}.jpg", thumbnail=f"{picture}.jpg"))
     return dict(id=author, author=author, mine=mine, timeZone="UTC", stamps=stamps, portrait=base64.b64encode((folder/("owner.jpg" if mine else "portrait.jpg")).read_bytes()).decode() if mine or author=="Alex" else None)
 books=[book("Jason", True, [0,1,2,3]),book("Alex", False, [2,3]), book("Maya", False, [1]), book("Noah", False, [3])]
+# Noah still has a book but his only stamp is from yesterday.
+books[3]["stamps"] = book("Noah", False, [0,3])["stamps"][1:]
 for n, b in enumerate(books, start=1):
     b["mailbox"]=base64.b64encode(bytes([n])*32).decode()
     b["discussionKey"]=base64.b64encode(bytes([n+10])*32).decode()

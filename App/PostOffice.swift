@@ -39,10 +39,12 @@ struct VintageCamera: View {
 struct StampActions: View {
     let page: Shelf.Page
     @EnvironmentObject private var library: Library
+    var previewReplies = false
     @State private var comments = false
 
     var body: some View {
         let notes = library.shelf.replies(to: page)
+        let replies = notes.filter { $0.message.action == "comment" }
         let likes = notes.filter { $0.message.action == "like" }
         let liked = likes.contains { $0.book.mine }
         HStack(spacing: 22) {
@@ -53,7 +55,7 @@ struct StampActions: View {
                     .foregroundStyle(liked ? Paper.red : Paper.ink)
             }.accessibilityLabel(liked ? "Unlike stamp" : "Like stamp").accessibilityValue("\(likes.count) likes")
             Button { comments = true } label: {
-                Label("\(notes.filter { $0.message.action == "comment" }.count)", systemImage: "text.bubble")
+                Label("\(replies.count)", systemImage: "text.bubble")
             }.accessibilityLabel("Comments")
             Spacer()
             if !page.book.mine {
@@ -71,11 +73,22 @@ struct StampActions: View {
         }
         .font(.subheadline.weight(.semibold))
         .buttonStyle(PostActionStyle()).disabled(library.saving)
-        .overlay(alignment: .top) { Divider() }
+        .overlay(alignment: .top) { if !previewReplies { Divider() } }
         #if DEBUG && targetEnvironment(simulator)
         .task { if Storage.captureTab == "comments", !page.book.mine { comments = true } }
         #endif
         .sheet(isPresented: $comments) { CommentSheet(page: page) }
+        if previewReplies && !replies.isEmpty {
+            VStack(alignment: .leading, spacing: 7) {
+                Divider()
+                ForEach(replies.suffix(2)) { reply in
+                    Button { comments = true } label: {
+                        (Text(reply.book.author).bold() + Text("  ") + Text(reply.message.text))
+                            .font(.subheadline).multilineTextAlignment(.leading).lineLimit(2)
+                    }.buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 

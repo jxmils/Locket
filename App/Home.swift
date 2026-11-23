@@ -189,6 +189,7 @@ private struct StampDeck: View {
     let front: Stamp
     let next: Stamp?
     let previous: Stamp?
+    var inPostbox = false
     let advance: (Int) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var offset: CGFloat = 0
@@ -203,8 +204,8 @@ private struct StampDeck: View {
                 if let behind = offset > 0 ? previous : next {
                     DeckPrint(stamp: behind)
                         .scaleEffect(0.96 + 0.04 * progress)
-                        .rotationEffect(.degrees(reduceMotion ? 0 : -2 * Double(1 - progress)))
-                        .offset(y: 5 * (1 - progress))
+                        .rotationEffect(.degrees(reduceMotion ? 0 : (inPostbox ? 3 : -2) * Double(1 - progress)))
+                        .offset(x: inPostbox ? 9 * (1 - progress) : 0, y: 5 * (1 - progress))
                 }
                 DeckPrint(stamp: front)
                     .rotationEffect(.degrees(reduceMotion ? 0 : Double(offset / width) * 13), anchor: .bottom)
@@ -262,27 +263,32 @@ private struct StampDeck: View {
 private struct StampPager: View {
     let pages: [Shelf.Page]
     @Binding var selected: String?
+    var inPostbox = false
 
     var body: some View {
         if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
-            HStack(alignment: .firstTextBaseline) {
-                Text("From \(page.book.author)").font(.custom("Baskerville-Italic", size: 26, relativeTo: .title2))
-                Spacer()
-                if pages.count > 1 {
-                    Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
-                        .font(.caption.monospacedDigit()).foregroundStyle(Paper.board)
-                }
-            }.padding(.top, 10).overlay(alignment: .top) { Rectangle().fill(Paper.rule).frame(height: 0.5) }
+            if !inPostbox {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("From \(page.book.author)").font(.custom("Baskerville-Italic", size: 26, relativeTo: .title2))
+                    Spacer()
+                    if pages.count > 1 {
+                        Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
+                            .font(.caption.monospacedDigit()).foregroundStyle(Paper.board)
+                    }
+                }.padding(.top, 10).overlay(alignment: .top) { Rectangle().fill(Paper.rule).frame(height: 0.5) }
+            }
             let index = pages.firstIndex { $0.id == page.id } ?? 0
             let startingSelection = selected
             StampDeck(front: page.stamp,
                       next: pages.count > 1 ? pages[(index + 1) % pages.count].stamp : nil,
-                      previous: pages.count > 1 ? pages[(index + pages.count - 1) % pages.count].stamp : nil) { step in
+                      previous: pages.count > 1 ? pages[(index + pages.count - 1) % pages.count].stamp : nil,
+                      inPostbox: inPostbox) { step in
                 guard selected == startingSelection else { return }
                 selected = pages[(index + step + pages.count) % pages.count].id
             }
             .id(page.id)
             .aspectRatio(0.91, contentMode: .fit)
+            .padding(.horizontal, inPostbox ? -12 : 0)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Stamp from \(page.book.author), \(page.stamp.dateLabel)")
             .accessibilityValue("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) of \(pages.count)")
@@ -291,7 +297,7 @@ private struct StampPager: View {
                 let step = direction == .increment ? 1 : -1
                 selected = pages[(position + step + pages.count) % pages.count].id
             }
-            StampActions(page: page).id(page.id)
+            StampActions(page: page, previewReplies: inPostbox).id(page.id)
         }
     }
 }
@@ -328,66 +334,73 @@ struct Postbox: View {
     @EnvironmentObject private var library: Library
     @State private var selected: String?
     var body: some View {
-        let mail = library.shelf.mail
-        PaperPage {
-            HStack(alignment: .firstTextBaseline) {
-                PageTitle(title: "Postbox")
-                Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased())
-                    .font(.caption2.monospaced().weight(.semibold)).fixedSize()
-            }
-            AirmailEdge()
-            TimelineView(.periodic(from: .now, by: 15)) { time in
-                let canPost = library.shelf.own.map { book in
-                    let today = book.day(time.date)
-                    return !book.stamps.contains { $0.day == today }
-                } ?? true
-                if canPost || !mail.isEmpty {
-                    ScrollView(.horizontal) {
-                        HStack(alignment: .top, spacing: 16) {
-                            if canPost {
-                                Button(action: openToday) {
-                                    ZStack {
-                                        PerforatedPaper().fill(Paper.ink)
-                                        Rectangle().strokeBorder(Paper.stock.opacity(0.76), lineWidth: 0.8).padding(5)
-                                        Image(systemName: "plus").font(.system(size: 20, weight: .semibold))
-                                            .foregroundStyle(Paper.stock)
-                                    }
-                                    .frame(width: 35, height: 40)
-                                    .rotationEffect(.degrees(-6))
-                                    .frame(width: 49, height: 49)
-                                    .contentShape(Rectangle())
+        TimelineView(.periodic(from: .now, by: 15)) { clock in
+            let mail = library.shelf.postbox(on: clock.date)
+            let position = mail.firstIndex { $0.id == selected } ?? 0
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("Postbox").font(.largeTitle.bold()).tracking(-1.3)
+                            .accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        if mail.count > 1 {
+                            Text("\(position + 1) / \(mail.count)").font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    let canPost = library.shelf.own.map { book in
+                        let today = book.day(clock.date)
+                        return !book.stamps.contains { $0.day == today }
+                    } ?? true
+                    if canPost || !mail.isEmpty {
+                        ScrollView(.horizontal) {
+                            HStack(alignment: .top, spacing: 15) {
+                                if canPost {
+                                    Button(action: openToday) {
+                                        VStack(spacing: 3) {
+                                            ZStack {
+                                                PerforatedPaper().fill(Paper.ink)
+                                                Rectangle().strokeBorder(Paper.stock.opacity(0.76), lineWidth: 0.8).padding(5)
+                                                Image(systemName: "plus").font(.title3.weight(.semibold)).foregroundStyle(Paper.stock)
+                                            }
+                                            .frame(width: 35, height: 40)
+                                            .rotationEffect(.degrees(-6))
+                                            .frame(width: 49, height: 49)
+                                            Text("You").font(.caption)
+                                        }
+                                    }.accessibilityLabel("Make today’s stamp")
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Make today’s stamp")
-                            }
-                            ForEach(library.shelf.friends.filter { !$0.stamps.isEmpty }) { friend in
-                                Button { selected = mail.first { $0.book.id == friend.id }?.id } label: {
-                                    VStack(spacing: 5) {
-                                        BookPortrait(book: friend, size: 43).padding(3)
-                                            .overlay { Circle().strokeBorder((mail.first { $0.id == selected } ?? mail.first)?.book.id == friend.id ? Paper.red : .clear, lineWidth: 1.5) }
-                                        if (mail.first { $0.id == selected } ?? mail.first)?.book.id != friend.id {
-                                            Text(friend.author).font(.caption).lineLimit(1)
+                                ForEach(mail) { page in
+                                    let current = page.id == mail[position].id
+                                    Button { selected = page.id } label: {
+                                        VStack(spacing: 3) {
+                                            BookPortrait(book: page.book, size: 43).padding(3)
+                                                .overlay { Circle().strokeBorder(current ? Paper.red : .clear, lineWidth: 1.5) }
+                                            Text(page.book.author).font(.caption.weight(current ? .semibold : .regular))
+                                                .lineLimit(1).frame(width: 55)
                                         }
                                     }
-                                }.buttonStyle(.plain).accessibilityLabel("Stamps from \(friend.author)")
-                            }
-                        }.padding(.vertical, 2)
-                    }.scrollIndicators(.hidden)
+                                    .accessibilityLabel("Stamp from \(page.book.author)")
+                                    .accessibilityAddTraits(current ? .isSelected : [])
+                                }
+                            }.buttonStyle(.plain).padding(.vertical, 2)
+                        }.scrollIndicators(.hidden)
+                    }
+                    if mail.isEmpty {
+                        Text("No stamps from friends today.").foregroundStyle(.secondary).padding(.vertical, 18)
+                    } else {
+                        StampPager(pages: mail, selected: $selected, inPostbox: true)
+                    }
                 }
+                .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
+                .frame(maxWidth: 560).frame(maxWidth: .infinity)
             }
-            if !mail.isEmpty {
-                StampPager(pages: mail, selected: $selected)
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 5).fill(Paper.lining.opacity(0.54))
-                    Image(systemName: "envelope").font(.system(size: 94, weight: .ultraLight))
-                        .foregroundStyle(Paper.board).rotationEffect(.degrees(-7))
-                }.aspectRatio(1.6, contentMode: .fit).accessibilityHidden(true)
-                Text("No mail yet").font(.system(.title2, design: .serif))
-                Text("Open a friend’s stamp book invitation to see their photos here.").foregroundStyle(.secondary)
-
-            }
+            .refreshable { await library.refresh() }
         }
+        .foregroundStyle(Paper.ink)
+        .background(Paper.page.ignoresSafeArea())
+        .toolbarBackground(Paper.page, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }
 

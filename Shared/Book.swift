@@ -58,10 +58,20 @@ struct Shelf: Codable, Equatable {
     }
     var mail: [Page] {
         let pages: [Page] = friends.flatMap { book in book.stamps.map { Page(book: book, stamp: $0) } }
-        return pages.sorted { left, right in
-            if left.stamp.posted == right.stamp.posted { return left.id < right.id }
-            return left.stamp.posted > right.stamp.posted
-        }
+        return pages.sorted(by: Self.latestFirst)
+    }
+
+    func postbox(on date: Date) -> [Page] {
+        friends.compactMap { book -> Page? in
+            let today = book.day(date)
+            guard let stamp = book.stamps.first(where: { $0.day == today }) else { return nil }
+            return Page(book: book, stamp: stamp)
+        }.sorted(by: Self.latestFirst)
+    }
+
+    private static func latestFirst(_ left: Page, _ right: Page) -> Bool {
+        if left.stamp.posted == right.stamp.posted { return left.id < right.id }
+        return left.stamp.posted > right.stamp.posted
     }
 
     static func nextID(_ id: String?, in ids: [String]) -> String? {

@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 enum Paper {
-    static let page = Color(red: 0.937, green: 0.918, blue: 0.900)
+    static let page = Color(red: 242/255, green: 240/255, blue: 240/255)
     static let board = Color(red: 0.32, green: 0.37, blue: 0.33)
-    static let lining = Color(red: 0.85, green: 0.85, blue: 0.81)
-    static let stock = Color(red: 0.986, green: 0.977, blue: 0.966)
-    static let ink = Color(red: 0.185, green: 0.162, blue: 0.155)
+    static let lining = Color(red: 0.86, green: 0.85, blue: 0.86)
+    static let stock = Color(red: 0.992, green: 0.991, blue: 0.992)
+    static let ink = Color(red: 0.16, green: 0.15, blue: 0.16)
     static let red = Color(red: 0.52, green: 0.205, blue: 0.235)
     static let rule = ink.opacity(0.26)
     static let album = Color(red: 0.88, green: 0.88, blue: 0.85)
