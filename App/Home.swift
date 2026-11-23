@@ -51,8 +51,48 @@ struct Home: View {
 struct PageTitle: View {
     var title: String
     var body: some View {
-        Text(title).font(.system(size: 40, weight: .semibold, design: .serif)).tracking(-1.7)
-            .frame(maxWidth: .infinity, alignment: .leading).accessibilityAddTraits(.isHeader)
+        Text(title).font(.custom("Baskerville-Italic", size: 47, relativeTo: .largeTitle))
+            .tracking(-1.6).frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Short runs of two inks along the edge of an airmail envelope.
+private struct AirmailEdge: View {
+    var body: some View {
+        Canvas { context, size in
+            for x in stride(from: CGFloat(-12), to: size.width, by: 26) {
+                for (offset, ink) in [(CGFloat.zero, Paper.red), (13, Paper.board)] {
+                    let start = x + offset
+                    var stripe = Path()
+                    stripe.move(to: CGPoint(x: start, y: size.height))
+                    stripe.addLine(to: CGPoint(x: start + 5, y: size.height))
+                    stripe.addLine(to: CGPoint(x: start + 5 + size.height, y: 0))
+                    stripe.addLine(to: CGPoint(x: start + size.height, y: 0))
+                    stripe.closeSubpath()
+                    context.fill(stripe, with: .color(ink.opacity(0.74)))
+                }
+            }
+        }.frame(height: 3).accessibilityHidden(true).allowsHitTesting(false)
+    }
+}
+
+private struct LetterPaper: View {
+    var body: some View {
+        Canvas { context, size in
+            // Fixed fiber positions keep the paper still while the stamps move.
+            var fibers = Path()
+            for row in 0..<Int(size.height / 11) {
+                for column in 0..<Int(size.width / 13) {
+                    let seed = (row * 997 + column * 431 + row * column * 37) % 1031
+                    let x = CGFloat(column * 13 + seed % 13)
+                    let y = CGFloat(row * 11 + seed % 11)
+                    fibers.move(to: CGPoint(x: x, y: y))
+                    fibers.addLine(to: CGPoint(x: x + CGFloat(1 + seed % 3), y: y + 0.5))
+                }
+            }
+            context.stroke(fibers, with: .color(Paper.ink.opacity(0.075)), lineWidth: 0.6)
+        }.background(Paper.page).accessibilityHidden(true).allowsHitTesting(false)
     }
 }
 
@@ -65,7 +105,9 @@ struct PaperPage<Content: View>: View {
                 .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 24)
                 .frame(maxWidth: 560).frame(maxWidth: .infinity)
         }
-        .background(Paper.page.ignoresSafeArea())
+        .background { LetterPaper().ignoresSafeArea() }
+        .toolbarBackground(Paper.page, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .foregroundStyle(Paper.ink)
         .refreshable { await library.refresh() }
     }
@@ -101,13 +143,15 @@ struct Today: View {
                 if let issued = book.stamps.first(where: { $0.day == book.day(time.date) }) {
                     PaperPage {
                         PageTitle(title: "Today’s stamp")
+                        AirmailEdge()
                         HStack {
                             BookPortrait(book: book, size: 34)
-                            Text(book.author).font(.headline)
+                            Text(book.author).font(.custom("Baskerville-SemiBold", size: 21, relativeTo: .headline))
                             Spacer()
-                            Label("In your book", systemImage: "checkmark").font(.caption)
+                            Label("In your book", systemImage: "checkmark").font(.caption.monospaced()).foregroundStyle(Paper.board)
                         }
                         PrintMount(image: issued.image(small: false), caption: issued.dateLabel)
+                            .rotationEffect(.degrees(-1.2)).padding(.vertical, 4)
                         StampActions(page: Shelf.Page(book: book, stamp: issued))
                     }
                 } else { StampCamera(book: book, active: active).id(book.id) }
@@ -222,13 +266,13 @@ private struct StampPager: View {
     var body: some View {
         if let page = pages.first(where: { $0.id == selected }) ?? pages.first {
             HStack(alignment: .firstTextBaseline) {
-                Text("From \(page.book.author)").font(.system(.title2, design: .serif).italic())
+                Text("From \(page.book.author)").font(.custom("Baskerville-Italic", size: 26, relativeTo: .title2))
                 Spacer()
                 if pages.count > 1 {
                     Text("\((pages.firstIndex { $0.id == page.id } ?? 0) + 1) / \(pages.count)")
-                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.caption.monospacedDigit()).foregroundStyle(Paper.board)
                 }
-            }.padding(.top, 2)
+            }.padding(.top, 10).overlay(alignment: .top) { Rectangle().fill(Paper.rule).frame(height: 0.5) }
             let index = pages.firstIndex { $0.id == page.id } ?? 0
             let startingSelection = selected
             StampDeck(front: page.stamp,
@@ -291,6 +335,7 @@ struct Postbox: View {
                 Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)).uppercased())
                     .font(.caption2.monospaced().weight(.semibold)).fixedSize()
             }
+            AirmailEdge()
             TimelineView(.periodic(from: .now, by: 15)) { time in
                 let canPost = library.shelf.own.map { book in
                     let today = book.day(time.date)
@@ -360,6 +405,7 @@ struct Books: View {
         let book = books.first { $0.id == selected } ?? books.first
         PaperPage {
             PageTitle(title: "Stamp books")
+            AirmailEdge()
             if let book {
                 HStack(spacing: 12) {
                     BookPortrait(book: book, size: 52)
@@ -367,7 +413,7 @@ struct Books: View {
                         ForEach(books) { b in Button(b.mine ? "My stamp book" : b.author) { selected = b.id; monthChoice = nil } }
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack { Text(book.author).font(.title3.bold()); Image(systemName: "chevron.down").font(.caption2) }
+                            HStack { Text(book.author).font(.custom("Baskerville-SemiBold", size: 23, relativeTo: .title3)); Image(systemName: "chevron.down").font(.caption2) }
                             Text("\(book.stamps.count) \(book.stamps.count == 1 ? "stamp" : "stamps")").font(.caption)
                         }
                     }
@@ -430,7 +476,7 @@ struct Books: View {
                             Spacer()
                             Text("\((monthsInOrder.firstIndex(of: month) ?? 0) + 1) / \(monthsInOrder.count)")
                                 .font(.caption2.monospacedDigit())
-                        }.font(.subheadline.weight(.semibold))
+                        }.font(.custom("Baskerville-SemiBold", size: 20, relativeTo: .headline))
                         Divider()
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 17) {
                             ForEach(pages) { stamp in
@@ -440,20 +486,18 @@ struct Books: View {
                                 }.buttonStyle(.plain).accessibilityLabel("Open stamp, \(stamp.dateLabel)")
                             }
                         }
-                    }.padding(13)
-                    .background {
-                        Canvas { context, size in
-                            var lines = Path()
-                            for x in stride(from: 0, to: size.width, by: 14) {
-                                lines.move(to: CGPoint(x: x, y: 0)); lines.addLine(to: CGPoint(x: x, y: size.height))
-                            }
-                            for y in stride(from: 0, to: size.height, by: 14) {
-                                lines.move(to: CGPoint(x: 0, y: y)); lines.addLine(to: CGPoint(x: size.width, y: y))
-                            }
-                            context.stroke(lines, with: .color(Paper.board.opacity(0.09)), lineWidth: 0.5)
-                        }.background(Paper.stock.opacity(0.75))
                     }
-                    .overlay { Rectangle().strokeBorder(Paper.board.opacity(0.16), lineWidth: 0.7) }
+                    .padding(.vertical, 17).padding(.trailing, 13).padding(.leading, 23)
+                    .background {
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4).fill(Paper.album)
+                            RoundedRectangle(cornerRadius: 3).strokeBorder(Paper.rule, lineWidth: 0.6).padding(4)
+                            Rectangle().fill(Paper.board).frame(width: 9)
+                            Rectangle().fill(Paper.stock.opacity(0.48)).frame(width: 1).padding(.leading, 5)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .shadow(color: Paper.ink.opacity(0.15), radius: 2, y: 2)
+                    }
                 }
             } else { Text("Start your first book on the Today tab.").font(.system(.title2, design: .serif)) }
         }

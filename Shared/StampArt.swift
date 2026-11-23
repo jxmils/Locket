@@ -2,12 +2,14 @@ import SwiftUI
 import UIKit
 
 enum Paper {
-    static let page = Color(red: 0.967, green: 0.955, blue: 0.918)
-    static let board = Color(red: 0.16, green: 0.29, blue: 0.43)
-    static let lining = Color(red: 0.79, green: 0.84, blue: 0.86)
-    static let stock = Color(red: 1, green: 0.985, blue: 0.948)
-    static let ink = Color(red: 0.08, green: 0.17, blue: 0.28)
-    static let red = Color(red: 0.70, green: 0.19, blue: 0.105)
+    static let page = Color(red: 0.937, green: 0.918, blue: 0.900)
+    static let board = Color(red: 0.32, green: 0.37, blue: 0.33)
+    static let lining = Color(red: 0.85, green: 0.85, blue: 0.81)
+    static let stock = Color(red: 0.986, green: 0.977, blue: 0.966)
+    static let ink = Color(red: 0.185, green: 0.162, blue: 0.155)
+    static let red = Color(red: 0.52, green: 0.205, blue: 0.235)
+    static let rule = ink.opacity(0.26)
+    static let album = Color(red: 0.88, green: 0.88, blue: 0.85)
 }
 
 /// Perforations follow the four edges at the same physical pitch.

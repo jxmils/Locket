@@ -165,7 +165,7 @@ struct StampCamera: View {
     @State private var accessDenied = false
     @State private var run = UUID()
     @State private var fixture: Data?
-    private let dark = Color(red: 0.105, green: 0.10, blue: 0.135)
+    private let dark = Color(red: 0.17, green: 0.15, blue: 0.14)
 
     private var useLens: Bool { active && phase == .active && lockedPhoto == nil }
     private var date: String {
@@ -177,7 +177,7 @@ struct StampCamera: View {
             let width = max(1, min(geo.size.width - 20, (geo.size.height - 170) / 1.105, 490))
             VStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Today’s stamp").font(.system(.title, design: .serif).italic())
+                    Text("Today’s stamp").font(.custom("Baskerville-Italic", size: 36, relativeTo: .title))
                     Spacer()
                     Text(impression ? "" : date.uppercased())
                         .font(.caption2.monospaced().weight(.medium))
@@ -209,7 +209,7 @@ struct StampCamera: View {
                         Button { shutter() } label: {
                             ZStack {
                                 Circle().strokeBorder(Paper.stock, lineWidth: 2)
-                                Circle().fill(Color(red: 0.98, green: 0.38, blue: 0.24)).padding(6)
+                                Circle().fill(Color(red: 0.73, green: 0.38, blue: 0.39)).padding(6)
                                 Circle().strokeBorder(.black.opacity(0.22), lineWidth: 1).padding(9)
                             }.frame(width: 72, height: 72)
                         }.disabled((!ready && fixture == nil) || taking)
